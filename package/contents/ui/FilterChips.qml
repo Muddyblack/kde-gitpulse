@@ -18,6 +18,8 @@ Flickable {
 
     signal picked(string id)
 
+    readonly property Tones tones: Tones {}
+
     readonly property var defs: {
         switch (chips.tab) {
         case "inbox":
@@ -109,19 +111,66 @@ Flickable {
         Repeater {
             model: chips.defs
 
-            delegate: PlasmaComponents.Button {
+            delegate: Rectangle {
+                id: chip
+
                 required property var modelData
 
                 readonly property int n: chips.countFor(modelData.id)
+                readonly property bool checked: chips.current === modelData.id
+                readonly property bool chipEnabled: chip.n > 0 || chip.modelData.id === "all" || chip.checked
 
-                checkable: true
-                checked: chips.current === modelData.id
-                flat: !checked
-                text: n > 0 ? i18nc("filter name and how many match", "%1 · %2", modelData.label, n) : modelData.label
-                enabled: n > 0 || modelData.id === "all" || checked
-                onClicked: chips.picked(modelData.id)
+                implicitWidth: chipRow.implicitWidth + Kirigami.Units.gridUnit
+                implicitHeight: Math.round(Kirigami.Units.gridUnit * 1.35)
+                radius: height / 2
+                color: chip.checked ? chips.tones.accent : "transparent"
+                border.width: chip.checked ? 0 : 1
+                border.color: hover.hovered ? Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.35) : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.18)
+                opacity: chip.chipEnabled ? 1 : 0.45
 
-                Accessible.name: modelData.label
+                Accessible.role: Accessible.Button
+                Accessible.name: chip.modelData.label
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: Kirigami.Units.shortDuration
+                    }
+                }
+
+                HoverHandler {
+                    id: hover
+
+                    enabled: chip.chipEnabled
+                    cursorShape: Qt.PointingHandCursor
+                }
+
+                TapHandler {
+                    enabled: chip.chipEnabled
+                    onTapped: chips.picked(chip.modelData.id)
+                }
+
+                RowLayout {
+                    id: chipRow
+
+                    anchors.centerIn: parent
+                    spacing: Math.round(Kirigami.Units.smallSpacing * 0.75)
+
+                    PlasmaComponents.Label {
+                        text: chip.modelData.label
+                        color: chip.checked ? chips.tones.accentText : Kirigami.Theme.disabledTextColor
+                        font.pixelSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.95)
+                    }
+
+                    PlasmaComponents.Label {
+                        visible: chip.n > 0
+                        text: chip.n
+                        color: chip.checked ? chips.tones.accentText : Kirigami.Theme.disabledTextColor
+                        font.family: "monospace"
+                        font.weight: Font.DemiBold
+                        font.pixelSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.85)
+                        opacity: chip.checked ? 0.8 : 1
+                    }
+                }
             }
         }
     }

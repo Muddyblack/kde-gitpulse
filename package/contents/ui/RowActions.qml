@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.plasmoid
 
 import "../code/Contract.js" as Contract
 import "../code/Format.js" as Fmt
@@ -18,6 +19,20 @@ ColumnLayout {
     signal openUrlRequested(string url)
     signal done
 
+    // Cards stay legible on every surface: opaque on "solid", but letting the
+    // blurred/tinted popup show through on "translucent"/"glass" — otherwise
+    // this drawer is the one solid block left floating on a frosted popup.
+    readonly property real cardAlpha: {
+        switch (Plasmoid.configuration.surfaceMode) {
+        case "glass":
+            return Plasmoid.configuration.popupOpacity;
+        case "translucent":
+            return 0.55;
+        default:
+            return 1;
+        }
+    }
+
     readonly property bool isNotification: drawer.item.kind === Contract.KIND.NOTIFICATION
     readonly property bool isRun: drawer.item.kind === Contract.KIND.RUN
     readonly property int runPull: drawer.isRun && drawer.item.pullNumber ? drawer.item.pullNumber : 0
@@ -27,7 +42,7 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         Layout.preferredHeight: inner.implicitHeight + Kirigami.Units.smallSpacing * 2
-        color: Kirigami.Theme.alternateBackgroundColor
+        color: Qt.rgba(Kirigami.Theme.alternateBackgroundColor.r, Kirigami.Theme.alternateBackgroundColor.g, Kirigami.Theme.alternateBackgroundColor.b, drawer.cardAlpha)
 
         ColumnLayout {
             id: inner

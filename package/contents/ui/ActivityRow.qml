@@ -7,7 +7,6 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
-import org.kde.plasma.extras as PlasmaExtras
 
 import "../code/Format.js" as Fmt
 
@@ -33,12 +32,22 @@ Item {
     Accessible.name: row.item.title
     Accessible.description: i18nc("repository, state and age", "%1 · %2 · %3 ago", row.item.repo, row.item.label, Fmt.relative(row.item.updatedAt))
 
-    PlasmaExtras.Highlight {
+    // Rounded hover/selection card instead of the stock square Highlight —
+    // mirrors hyprland/ActivityItem.qml's rows so the list reads the same on
+    // both platforms.
+    Rectangle {
         anchors.fill: parent
         anchors.margins: Math.round(Kirigami.Units.smallSpacing / 2)
-        hovered: mouse.containsMouse
-        active: row.selected
-        visible: mouse.containsMouse || row.selected
+        radius: Kirigami.Units.cornerRadius
+        color: mouse.containsMouse || row.selected ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, row.selected ? 0.16 : 0.08) : "transparent"
+        border.width: row.selected ? 1 : 0
+        border.color: row.tones.accent
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Kirigami.Units.shortDuration
+            }
+        }
     }
 
     // Unread marker: an accent edge, never colour alone — the title is also

@@ -2,7 +2,10 @@
 <kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
-  <kcfgfile name=""/>
+  <!-- Named (not per-instance): every placement of this applet — one per
+       screen, or one in the panel and one you add later — reads and writes
+       the same file, so the token and every other setting is entered once. -->
+  <kcfgfile name="gitpulserc"/>
   <group name="General">
 
     <!-- Credentials.

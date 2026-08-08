@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.plasmoid
 
 import "../code/Format.js" as Fmt
 
@@ -15,9 +16,22 @@ Rectangle {
     readonly property string tone: Fmt.impactTone(card.incident.impact)
     readonly property var updates: (card.incident.incident_updates || []).slice(0, 2)
 
+    // See RowActions.qml — same reasoning: stay opaque on "solid", let the
+    // frosted/tinted popup show through on "translucent"/"glass".
+    readonly property real cardAlpha: {
+        switch (Plasmoid.configuration.surfaceMode) {
+        case "glass":
+            return Plasmoid.configuration.popupOpacity;
+        case "translucent":
+            return 0.55;
+        default:
+            return 1;
+        }
+    }
+
     implicitHeight: body.implicitHeight + Kirigami.Units.smallSpacing * 2
     radius: Kirigami.Units.cornerRadius
-    color: Kirigami.Theme.alternateBackgroundColor
+    color: Qt.rgba(Kirigami.Theme.alternateBackgroundColor.r, Kirigami.Theme.alternateBackgroundColor.g, Kirigami.Theme.alternateBackgroundColor.b, card.cardAlpha)
 
     // A severity spine reads faster than a coloured background at this size.
     Rectangle {
