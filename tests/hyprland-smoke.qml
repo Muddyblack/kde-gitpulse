@@ -11,7 +11,7 @@
 // so anything QML complains about fails the build.
 import QtQuick
 import "../hyprland" as H
-import "../package/contents/ui" as Core
+import "../package/contents/ui/engine" as Core
 import "../package/contents/code/Contract.js" as Contract
 
 Item {

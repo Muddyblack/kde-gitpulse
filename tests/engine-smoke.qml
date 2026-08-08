@@ -6,7 +6,7 @@
 // *runs* — bindings evaluate, timers stay off when they should, and the
 // unconfigured state is reached without touching the network.
 import QtQuick
-import "../package/contents/ui" as Core
+import "../package/contents/ui/engine" as Core
 import "../package/contents/code/GitHub.js" as GH
 
 QtObject {
