@@ -82,17 +82,7 @@ Item {
         color: ui.ink
     }
 
-    Core.Engine {
-        id: core
-
-        // Nothing may touch the network during a test run.
-        statusEnabled: false
-        profileEnabled: false
-        copilotEnabled: false
-        actionsEnabled: false
-        pullsEnabled: false
-        issuesEnabled: false
-    }
+    readonly property var core: Core.Engine
 
     H.PopupChrome {
         id: chrome
@@ -132,6 +122,14 @@ Item {
     }
 
     function fabricate() {
+        // Nothing may touch the network during a test run.
+        harness.core.statusEnabled = false;
+        harness.core.profileEnabled = false;
+        harness.core.copilotEnabled = false;
+        harness.core.actionsEnabled = false;
+        harness.core.pullsEnabled = false;
+        harness.core.issuesEnabled = false;
+
         var now = Date.now();
         function iso(minAgo) {
             return new Date(now - minAgo * 60000).toISOString();

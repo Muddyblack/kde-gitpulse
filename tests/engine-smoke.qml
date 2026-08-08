@@ -25,17 +25,17 @@ QtObject {
         }
     }
 
-    property Core.Engine engine: Core.Engine {
-        // Everything off: this test must not make a single request.
-        statusEnabled: false
-        profileEnabled: false
-        copilotEnabled: false
-        actionsEnabled: false
-        pullsEnabled: false
-        issuesEnabled: false
-    }
+    readonly property var engine: Core.Engine
 
     Component.onCompleted: {
+        // Everything off: this test must not make a single request.
+        suite.engine.statusEnabled = false;
+        suite.engine.profileEnabled = false;
+        suite.engine.copilotEnabled = false;
+        suite.engine.actionsEnabled = false;
+        suite.engine.pullsEnabled = false;
+        suite.engine.issuesEnabled = false;
+
         console.warn("\n  Engine — unconfigured state");
 
         ok("instantiates without a token", suite.engine !== null);
