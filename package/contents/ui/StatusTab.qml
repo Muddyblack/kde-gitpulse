@@ -21,8 +21,12 @@ PlasmaComponents.ScrollView {
 
     readonly property var summary: tab.engine.statusSummary
     readonly property var live: Contract.activeIncidents(tab.engine.incidents)
+    readonly property var history: (tab.engine.incidents || []).slice(0, 12)
     readonly property string indicator: tab.summary && tab.summary.status ? tab.summary.status.indicator : ""
     readonly property Tones tones: Tones {}
+
+    /** "components" | "incidents" — match the Quickshell status view. */
+    property string view: "components"
 
     contentWidth: availableWidth
 
@@ -80,7 +84,29 @@ PlasmaComponents.ScrollView {
             }
         }
 
-        // ── open incidents ──────────────────────────────────────────────────
+        // ── view switch ─────────────────────────────────────────────────────
+        PlasmaComponents.TabBar {
+            id: views
+
+            Layout.fillWidth: true
+            Layout.leftMargin: Kirigami.Units.smallSpacing * 2
+            Layout.rightMargin: Kirigami.Units.smallSpacing * 2
+            currentIndex: tab.view === "components" ? 0 : 1
+
+            PlasmaComponents.TabButton {
+                text: i18n("Components")
+                onClicked: tab.view = "components"
+                Accessible.description: i18np("%1 monitored service", "%1 monitored services", tab.engine.statusComponents.length)
+            }
+
+            PlasmaComponents.TabButton {
+                text: i18n("Incidents")
+                onClicked: tab.view = "incidents"
+                Accessible.description: i18np("%1 incident on record", "%1 incidents on record", tab.history.length)
+            }
+        }
+
+        // ── open incidents (always shown, whichever view is selected) ───────
         SectionLabel {
             visible: tab.live.length > 0
             text: i18np("%1 open incident", "%1 open incidents", tab.live.length)
@@ -102,9 +128,33 @@ PlasmaComponents.ScrollView {
             }
         }
 
+        // ── incident history ────────────────────────────────────────────────
+        PlasmaExtras.PlaceholderMessage {
+            visible: tab.view === "incidents" && tab.history.length === 0
+            Layout.fillWidth: true
+            Layout.margins: Kirigami.Units.gridUnit * 2
+            text: i18n("No incidents on record")
+            explanation: i18n("GitHub has not reported any recent service incidents.")
+            iconName: "emblem-ok"
+        }
+
+        Repeater {
+            model: tab.view === "incidents" ? tab.history : []
+
+            delegate: IncidentCard {
+                required property var modelData
+
+                incident: modelData
+                expandable: true
+                Layout.fillWidth: true
+                Layout.leftMargin: Kirigami.Units.smallSpacing * 2
+                Layout.rightMargin: Kirigami.Units.smallSpacing * 2
+            }
+        }
+
         // ── components ──────────────────────────────────────────────────────
         SectionLabel {
-            visible: tab.engine.statusComponents.length > 0
+            visible: tab.view === "components" && tab.engine.statusComponents.length > 0
             text: i18n("Components")
             hint: i18n("90 days · incident-free")
             Layout.fillWidth: true
@@ -113,7 +163,7 @@ PlasmaComponents.ScrollView {
         }
 
         Repeater {
-            model: tab.engine.statusComponents
+            model: tab.view === "components" ? tab.engine.statusComponents : []
 
             delegate: ServiceRow {
                 required property var modelData
@@ -127,7 +177,7 @@ PlasmaComponents.ScrollView {
         }
 
         PlasmaComponents.Label {
-            visible: tab.engine.statusComponents.length > 0
+            visible: tab.view === "components" && tab.engine.statusComponents.length > 0
             text: i18n("Strips are built from GitHub's public incident feed, not from published uptime figures.")
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor

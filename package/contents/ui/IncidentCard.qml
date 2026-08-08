@@ -1,4 +1,4 @@
-// An open GitHub incident, with its two most recent updates.
+// A GitHub incident. The history tab expands it to show every update.
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
@@ -11,10 +11,15 @@ Rectangle {
     id: card
 
     required property var incident
+    property bool expandable: false
+    property bool expanded: false
 
     readonly property Tones tones: Tones {}
     readonly property string tone: Fmt.impactTone(card.incident.impact)
-    readonly property var updates: (card.incident.incident_updates || []).slice(0, 2)
+    readonly property var updates: {
+        var all = card.incident.incident_updates || [];
+        return card.expandable ? (card.expanded ? all : []) : all.slice(0, 2);
+    }
 
     // See RowActions.qml — same reasoning: stay opaque on "solid", let the
     // frosted/tinted popup show through on "translucent"/"glass".
@@ -32,6 +37,11 @@ Rectangle {
     implicitHeight: body.implicitHeight + Kirigami.Units.smallSpacing * 2
     radius: Kirigami.Units.cornerRadius
     color: Qt.rgba(Kirigami.Theme.alternateBackgroundColor.r, Kirigami.Theme.alternateBackgroundColor.g, Kirigami.Theme.alternateBackgroundColor.b, card.cardAlpha)
+
+    TapHandler {
+        enabled: card.expandable
+        onTapped: card.expanded = !card.expanded
+    }
 
     // A severity spine reads faster than a coloured background at this size.
     Rectangle {
@@ -53,11 +63,27 @@ Rectangle {
         anchors.leftMargin: Kirigami.Units.smallSpacing * 2
         spacing: Math.round(Kirigami.Units.smallSpacing / 2)
 
-        PlasmaComponents.Label {
-            text: card.incident.name || ""
-            font.weight: Font.DemiBold
-            wrapMode: Text.Wrap
+        RowLayout {
             Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
+
+            PlasmaComponents.Label {
+                text: card.incident.name || ""
+                font.weight: Font.DemiBold
+                wrapMode: Text.Wrap
+                maximumLineCount: card.expanded ? 4 : 2
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+            }
+
+            Kirigami.Icon {
+                visible: card.expandable
+                source: card.expanded ? "arrow-up" : "arrow-down"
+                isMask: true
+                color: Kirigami.Theme.disabledTextColor
+                Layout.preferredWidth: Kirigami.Units.iconSizes.small
+                Layout.preferredHeight: Kirigami.Units.iconSizes.small
+            }
         }
 
         RowLayout {
@@ -81,6 +107,17 @@ Rectangle {
                 color: Kirigami.Theme.disabledTextColor
                 Layout.fillWidth: true
             }
+        }
+
+        PlasmaComponents.Label {
+            visible: card.expanded && text !== ""
+            text: (card.incident.components || []).map(function (component) {
+                return component.name;
+            }).join(", ")
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
+            wrapMode: Text.Wrap
+            Layout.fillWidth: true
         }
 
         Repeater {
