@@ -43,6 +43,7 @@ QtObject {
     readonly property int spacingSmall: 4
     readonly property int shortDuration: 150
     readonly property int longDuration: 250
+    readonly property int smallFontSize: 10
 
     /** Relative luminance, for picking readable text on an arbitrary accent. */
     function luminance(c) {

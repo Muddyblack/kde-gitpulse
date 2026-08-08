@@ -34,7 +34,7 @@ Rectangle {
     radius: row.theme.radiusSmall
     color: hover.hovered ? row.theme.surfaceAlt : "transparent"
     border.width: row.selected ? 1 : 0
-    border.color: row.theme.accent
+    border.color: Qt.rgba(row.theme.accent.r, row.theme.accent.g, row.theme.accent.b, 0.5)
 
     Behavior on color {
         ColorAnimation {

@@ -41,9 +41,9 @@ Item {
         anchors.fill: parent
         anchors.margins: Math.round(Kirigami.Units.smallSpacing / 2)
         radius: Kirigami.Units.cornerRadius
-        color: mouse.containsMouse || row.selected ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, row.selected ? 0.16 : 0.08) : "transparent"
+        color: mouse.containsMouse || row.selected ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, row.selected ? 0.14 : 0.08) : "transparent"
         border.width: row.selected ? 1 : 0
-        border.color: row.tones.accent
+        border.color: Qt.rgba(row.tones.accent.r, row.tones.accent.g, row.tones.accent.b, 0.5)
 
         Behavior on color {
             ColorAnimation {

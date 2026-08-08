@@ -7,6 +7,7 @@ import QtQuick
 import QtQuick.Controls.Basic as QC
 import QtQuick.Layouts
 
+import "../package/contents/ui/shared" as Shared
 import "../package/contents/code/Format.js" as Format
 import "../package/contents/code/GitHub.js" as GH
 
@@ -277,7 +278,7 @@ QC.ScrollView {
             hint: pane.cal ? qsTr("peak %1 · avg %2/day").arg(pane.cal.busiest).arg(pane.cal.average.toFixed(1)) : ""
         }
 
-        TrendChart {
+        Shared.TrendChart {
             theme: pane.theme
             series: pane.cal ? pane.cal.recent : []
             Layout.fillWidth: true
@@ -290,7 +291,7 @@ QC.ScrollView {
             hint: qsTr("public events, local time")
         }
 
-        RhythmBars {
+        Shared.RhythmBars {
             theme: pane.theme
             buckets: pane.engine.rhythm
             Layout.fillWidth: true

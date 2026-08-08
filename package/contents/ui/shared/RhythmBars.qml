@@ -2,6 +2,10 @@
 //
 // Derived from the public event feed, so it covers roughly the last 90 days of
 // public activity — enough for a shape, not a total. Times are local.
+//
+// Platform-neutral (see shared/Pill.qml) — plain Rectangle/RowLayout, driven
+// entirely by `theme`, so both the Plasma widget and the Quickshell frontend
+// use this file unchanged.
 import QtQuick
 import QtQuick.Layouts
 
@@ -31,7 +35,7 @@ ColumnLayout {
             Text {
                 text: bar.modelData.name
                 color: rhythm.theme.textDim
-                font.pixelSize: 10
+                font.pixelSize: rhythm.theme.smallFontSize
                 horizontalAlignment: Text.AlignRight
                 Layout.preferredWidth: 62
             }
@@ -62,7 +66,7 @@ ColumnLayout {
             Text {
                 text: Math.round(bar.modelData.share) + "%"
                 color: rhythm.theme.textFaint
-                font.pixelSize: 10
+                font.pixelSize: rhythm.theme.smallFontSize
                 font.family: "monospace"
                 horizontalAlignment: Text.AlignRight
                 Layout.preferredWidth: 28

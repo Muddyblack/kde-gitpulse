@@ -3,8 +3,12 @@
 // Platform-neutral — plain QtQuick only, no Kirigami/PlasmaComponents or
 // Quickshell import, so the Plasma widget and the Quickshell frontend use
 // this exact file instead of maintaining two copies that quietly drift (see
-// issue #5). `theme` just needs `of(tone)` and `wash(tone, alpha)`; both
-// Tones.qml and hyprland/Theme.qml already have that shape.
+// issue #5). `theme` needs `of(tone)`, `wash(tone, alpha)` and
+// `smallFontSize`; both Tones.qml and hyprland/Theme.qml already have that
+// shape. Sizing comes from `theme.smallFontSize` rather than a hardcoded
+// pixel value — Kirigami's font/DPI scale and Hyprland's fixed baseline are
+// not the same number, and a raw px size here reads as a mismatched, oddly
+// oversized badge on the Kirigami side.
 //
 // Icon rendering is the one thing that cannot be shared: KDE resolves named
 // icons through the system icon theme (Kirigami.Icon), Hyprland draws its own
@@ -24,7 +28,7 @@ Rectangle {
     property Component iconDelegate: null
 
     implicitWidth: row.implicitWidth + 14
-    implicitHeight: 18
+    implicitHeight: Math.round(pill.theme.smallFontSize * 1.8)
     radius: height / 2
     color: pill.theme.wash(pill.tone, 0.16)
 
@@ -66,7 +70,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: pill.text
             color: pill.theme.of(pill.tone)
-            font.pixelSize: 10
+            font.pixelSize: pill.theme.smallFontSize
             font.weight: Font.DemiBold
         }
     }

@@ -9,6 +9,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
+import "shared" as Shared
 import "../code/Format.js" as Fmt
 import "../code/GitHub.js" as GH
 
@@ -206,83 +207,13 @@ PlasmaComponents.ScrollView {
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
         }
 
-        // Area + line chart of the last 30 contribution days.
-        // Mirrors hyprland/TrendChart.qml using Kirigami accent colour so it
-        // respects the system palette in all three surface modes.
-        Canvas {
-            id: trendChart
-
-            visible: tab.engine.calendar !== null && tab.engine.calendar.recent.length > 1
-            implicitHeight: Kirigami.Units.gridUnit * 3
+        // Shared with hyprland/ProfilePane.qml — see shared/TrendChart.qml.
+        Shared.TrendChart {
+            theme: tab.tones
+            series: tab.engine.calendar ? tab.engine.calendar.recent : []
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing * 2
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
-
-            readonly property var series: tab.engine.calendar ? tab.engine.calendar.recent : []
-            readonly property int peak: {
-                var m = 0;
-                for (var i = 0; i < trendChart.series.length; i++)
-                    m = Math.max(m, trendChart.series[i].count);
-                return m;
-            }
-            readonly property color accent: tab.tones.accent
-
-            onSeriesChanged: requestPaint()
-            onWidthChanged: requestPaint()
-            onPeakChanged: requestPaint()
-            onAccentChanged: requestPaint()
-
-            onPaint: {
-                var ctx = getContext("2d");
-                ctx.reset();
-                var n = trendChart.series.length;
-                if (n < 2 || trendChart.peak <= 0)
-                    return;
-
-                var pad = 3;
-                var h = trendChart.height - pad * 2;
-                var step = trendChart.width / (n - 1);
-                var ac = trendChart.accent;
-
-                function px(i) {
-                    return i * step;
-                }
-                function py(v) {
-                    return pad + h - (v / trendChart.peak) * h;
-                }
-
-                // filled area
-                ctx.beginPath();
-                ctx.moveTo(0, trendChart.height);
-                for (var i = 0; i < n; i++)
-                    ctx.lineTo(px(i), py(trendChart.series[i].count));
-                ctx.lineTo(trendChart.width, trendChart.height);
-                ctx.closePath();
-                var grad = ctx.createLinearGradient(0, 0, 0, trendChart.height);
-                grad.addColorStop(0, Qt.rgba(ac.r, ac.g, ac.b, 0.35));
-                grad.addColorStop(1, Qt.rgba(ac.r, ac.g, ac.b, 0));
-                ctx.fillStyle = grad;
-                ctx.fill();
-
-                // stroke
-                ctx.beginPath();
-                for (var j = 0; j < n; j++) {
-                    if (j === 0)
-                        ctx.moveTo(px(j), py(trendChart.series[j].count));
-                    else
-                        ctx.lineTo(px(j), py(trendChart.series[j].count));
-                }
-                ctx.strokeStyle = Qt.rgba(ac.r, ac.g, ac.b, 0.9);
-                ctx.lineWidth = 1.6;
-                ctx.lineJoin = "round";
-                ctx.stroke();
-
-                // today dot
-                ctx.beginPath();
-                ctx.arc(px(n - 1), py(trendChart.series[n - 1].count), 2.6, 0, Math.PI * 2);
-                ctx.fillStyle = Qt.rgba(ac.r, ac.g, ac.b, 1);
-                ctx.fill();
-            }
         }
 
         // ── when I ship ─────────────────────────────────────────────────────
@@ -295,73 +226,13 @@ PlasmaComponents.ScrollView {
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
         }
 
-        // Horizontal bar chart showing push activity by time-of-day bucket.
-        // Mirrors hyprland/RhythmBars.qml using Kirigami palette.
-        ColumnLayout {
-            id: rhythmBars
-
-            visible: tab.engine.rhythm.length > 0
+        // Shared with hyprland/ProfilePane.qml — see shared/RhythmBars.qml.
+        Shared.RhythmBars {
+            theme: tab.tones
+            buckets: tab.engine.rhythm
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing * 2
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
-            spacing: Math.round(Kirigami.Units.smallSpacing * 0.75)
-
-            readonly property real peak: tab.engine.rhythm.length ? tab.engine.rhythm[0].share : 0
-
-            Repeater {
-                model: tab.engine.rhythm
-
-                delegate: RowLayout {
-                    id: rhythmRow
-
-                    required property var modelData
-
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.smallSpacing
-
-                    PlasmaComponents.Label {
-                        text: rhythmRow.modelData.name
-                        font: Kirigami.Theme.smallFont
-                        color: Kirigami.Theme.disabledTextColor
-                        horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 4
-                    }
-
-                    // track + fill
-                    Item {
-                        Layout.fillWidth: true
-                        implicitHeight: Math.max(6, Math.round(Kirigami.Units.smallSpacing * 1.5))
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: height / 2
-                            color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.07)
-                        }
-
-                        Rectangle {
-                            width: rhythmBars.peak > 0 ? Math.max(height, parent.width * rhythmRow.modelData.share / rhythmBars.peak) : 0
-                            height: parent.height
-                            radius: height / 2
-                            color: tab.tones.accent
-                            opacity: 0.45 + 0.55 * (rhythmBars.peak > 0 ? rhythmRow.modelData.share / rhythmBars.peak : 0)
-
-                            Behavior on width {
-                                NumberAnimation {
-                                    duration: Kirigami.Units.longDuration
-                                }
-                            }
-                        }
-                    }
-
-                    PlasmaComponents.Label {
-                        text: Math.round(rhythmRow.modelData.share) + "%"
-                        font: Kirigami.Theme.smallFont
-                        color: Kirigami.Theme.disabledTextColor
-                        horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 2
-                    }
-                }
-            }
         }
 
         // ── languages ───────────────────────────────────────────────────────

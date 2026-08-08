@@ -2,6 +2,10 @@
 //
 // The heatmap answers "how consistent am I over a year"; this answers "what
 // does this month look like", which the grid is too coarse to show.
+//
+// Platform-neutral (see shared/Pill.qml) — plain Canvas, driven entirely by
+// `theme.accent`, so both the Plasma widget and the Quickshell frontend use
+// this file unchanged.
 import QtQuick
 
 Canvas {
