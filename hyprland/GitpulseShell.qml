@@ -13,7 +13,7 @@ import Quickshell.Io
 
 // Resolvable only because the config root is the repository root — see
 // ../shell.qml for why this file is not the entry point.
-import "../package/contents/ui" as Core
+import "../package/contents/ui/engine" as EngineNS
 
 ShellRoot {
     id: root
@@ -134,29 +134,102 @@ ShellRoot {
     }
 
     // ── shared engine ───────────────────────────────────────────────────────
-    Core.Engine {
-        id: core
+    //
+    // Singleton (package/contents/ui/engine/): Quickshell only ever runs one
+    // shell process, so this is just the same object the KDE side binds to
+    // when it's the one running — one poller per process either way, kept
+    // consistent rather than instantiated fresh here.
+    readonly property var core: EngineNS.Engine
 
-        token: root.activeToken
-        graphqlToken: cfg.graphqlToken
-        actionsEnabled: cfg.actionsEnabled
-        pullsEnabled: cfg.pullsEnabled
-        issuesEnabled: cfg.issuesEnabled
-        profileEnabled: cfg.profileEnabled
-        copilotEnabled: cfg.copilotEnabled
-        statusEnabled: cfg.statusEnabled
-        participatingOnly: cfg.participatingOnly
-        inboxIntervalSec: cfg.inboxIntervalSec
-        searchIntervalSec: cfg.searchIntervalSec
-        actionsIntervalSec: cfg.actionsIntervalSec
-        watchRepoCount: cfg.watchRepoCount
-        repoAllowlist: cfg.repoAllowlist
-        mutedRepos: cfg.mutedRepos
-        copilotOrg: cfg.copilotOrg
-
-        onMuteRequested: repo => root.mute(repo)
-        Component.onCompleted: core.start()
+    Binding {
+        target: root.core
+        property: "token"
+        value: root.activeToken
     }
+    Binding {
+        target: root.core
+        property: "graphqlToken"
+        value: cfg.graphqlToken
+    }
+    Binding {
+        target: root.core
+        property: "actionsEnabled"
+        value: cfg.actionsEnabled
+    }
+    Binding {
+        target: root.core
+        property: "pullsEnabled"
+        value: cfg.pullsEnabled
+    }
+    Binding {
+        target: root.core
+        property: "issuesEnabled"
+        value: cfg.issuesEnabled
+    }
+    Binding {
+        target: root.core
+        property: "profileEnabled"
+        value: cfg.profileEnabled
+    }
+    Binding {
+        target: root.core
+        property: "copilotEnabled"
+        value: cfg.copilotEnabled
+    }
+    Binding {
+        target: root.core
+        property: "statusEnabled"
+        value: cfg.statusEnabled
+    }
+    Binding {
+        target: root.core
+        property: "participatingOnly"
+        value: cfg.participatingOnly
+    }
+    Binding {
+        target: root.core
+        property: "inboxIntervalSec"
+        value: cfg.inboxIntervalSec
+    }
+    Binding {
+        target: root.core
+        property: "searchIntervalSec"
+        value: cfg.searchIntervalSec
+    }
+    Binding {
+        target: root.core
+        property: "actionsIntervalSec"
+        value: cfg.actionsIntervalSec
+    }
+    Binding {
+        target: root.core
+        property: "watchRepoCount"
+        value: cfg.watchRepoCount
+    }
+    Binding {
+        target: root.core
+        property: "repoAllowlist"
+        value: cfg.repoAllowlist
+    }
+    Binding {
+        target: root.core
+        property: "mutedRepos"
+        value: cfg.mutedRepos
+    }
+    Binding {
+        target: root.core
+        property: "copilotOrg"
+        value: cfg.copilotOrg
+    }
+
+    Connections {
+        target: root.core
+        function onMuteRequested(repo) {
+            root.mute(repo);
+        }
+    }
+
+    Component.onCompleted: root.core.start()
 
     // ── tray IPC ────────────────────────────────────────────────────────────
     IpcHandler {

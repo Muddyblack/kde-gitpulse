@@ -27,7 +27,7 @@ ColumnLayout {
         case "glass":
             return Plasmoid.configuration.popupOpacity;
         case "translucent":
-            return 0.55;
+            return 0.3;
         default:
             return 1;
         }

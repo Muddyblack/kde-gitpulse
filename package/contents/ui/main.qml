@@ -11,6 +11,7 @@ import org.kde.plasma.plasmoid
 
 import "../code/Format.js" as Fmt
 import "../code/GitHub.js" as GH
+import "engine" as EngineNS
 
 PlasmoidItem {
     id: root
@@ -99,34 +100,137 @@ PlasmoidItem {
     readonly property string activeToken: Plasmoid.configuration.useGhCli ? root.gh.token : Plasmoid.configuration.token
 
     // ── engine ──────────────────────────────────────────────────────────────
-    readonly property Engine engine: Engine {
-        token: root.activeToken
-        graphqlToken: Plasmoid.configuration.graphqlToken
-        active: true
+    //
+    // Shared singleton (engine/Engine.qml + engine/qmldir): every placement of
+    // this applet in this process — one per monitor is the common case for
+    // this collection's per-screen panels — binds to the same object, so
+    // there is exactly one poller against GitHub no matter how many panels
+    // show it, instead of one independent poller (and one avatar/API fetch
+    // set) per placement.
+    readonly property var engine: EngineNS.Engine
 
-        inboxIntervalSec: Plasmoid.configuration.inboxIntervalSec
-        searchIntervalSec: Plasmoid.configuration.searchIntervalSec
-        actionsIntervalSec: Plasmoid.configuration.actionsIntervalSec
-        profileIntervalSec: Plasmoid.configuration.profileIntervalSec
-        statusIntervalSec: Plasmoid.configuration.statusIntervalSec
+    Binding {
+        target: root.engine
+        property: "token"
+        value: root.activeToken
+    }
+    Binding {
+        target: root.engine
+        property: "graphqlToken"
+        value: Plasmoid.configuration.graphqlToken
+    }
+    Binding {
+        target: root.engine
+        property: "active"
+        value: true
+    }
+    Binding {
+        target: root.engine
+        property: "inboxIntervalSec"
+        value: Plasmoid.configuration.inboxIntervalSec
+    }
+    Binding {
+        target: root.engine
+        property: "searchIntervalSec"
+        value: Plasmoid.configuration.searchIntervalSec
+    }
+    Binding {
+        target: root.engine
+        property: "actionsIntervalSec"
+        value: Plasmoid.configuration.actionsIntervalSec
+    }
+    Binding {
+        target: root.engine
+        property: "profileIntervalSec"
+        value: Plasmoid.configuration.profileIntervalSec
+    }
+    Binding {
+        target: root.engine
+        property: "statusIntervalSec"
+        value: Plasmoid.configuration.statusIntervalSec
+    }
+    Binding {
+        target: root.engine
+        property: "watchRepoCount"
+        value: Plasmoid.configuration.watchRepoCount
+    }
+    Binding {
+        target: root.engine
+        property: "includeOrgRepos"
+        value: Plasmoid.configuration.includeOrgRepos
+    }
+    Binding {
+        target: root.engine
+        property: "repoAllowlist"
+        value: Plasmoid.configuration.repoAllowlist
+    }
+    Binding {
+        target: root.engine
+        property: "mutedRepos"
+        value: Plasmoid.configuration.mutedRepos
+    }
+    Binding {
+        target: root.engine
+        property: "participatingOnly"
+        value: Plasmoid.configuration.participatingOnly
+    }
+    Binding {
+        target: root.engine
+        property: "includeRead"
+        value: Plasmoid.configuration.includeRead
+    }
+    Binding {
+        target: root.engine
+        property: "copilotOrg"
+        value: Plasmoid.configuration.copilotOrg
+    }
+    Binding {
+        target: root.engine
+        property: "actionsEnabled"
+        value: Plasmoid.configuration.actionsEnabled
+    }
+    Binding {
+        target: root.engine
+        property: "pullsEnabled"
+        value: Plasmoid.configuration.pullsEnabled
+    }
+    Binding {
+        target: root.engine
+        property: "issuesEnabled"
+        value: Plasmoid.configuration.issuesEnabled
+    }
+    Binding {
+        target: root.engine
+        property: "profileEnabled"
+        value: Plasmoid.configuration.profileEnabled
+    }
+    Binding {
+        target: root.engine
+        property: "copilotEnabled"
+        value: Plasmoid.configuration.copilotEnabled
+    }
+    Binding {
+        target: root.engine
+        property: "statusEnabled"
+        value: Plasmoid.configuration.statusEnabled
+    }
 
-        watchRepoCount: Plasmoid.configuration.watchRepoCount
-        includeOrgRepos: Plasmoid.configuration.includeOrgRepos
-        repoAllowlist: Plasmoid.configuration.repoAllowlist
-        mutedRepos: Plasmoid.configuration.mutedRepos
-        participatingOnly: Plasmoid.configuration.participatingOnly
-        includeRead: Plasmoid.configuration.includeRead
-        copilotOrg: Plasmoid.configuration.copilotOrg
+    // Only the instance that wins ownership reacts to shared-engine signals —
+    // see Engine.qml's claimOwner()/releaseOwner() for why.
+    readonly property bool notifyOwner: EngineNS.Engine.claimOwner(root)
 
-        actionsEnabled: Plasmoid.configuration.actionsEnabled
-        pullsEnabled: Plasmoid.configuration.pullsEnabled
-        issuesEnabled: Plasmoid.configuration.issuesEnabled
-        profileEnabled: Plasmoid.configuration.profileEnabled
-        copilotEnabled: Plasmoid.configuration.copilotEnabled
-        statusEnabled: Plasmoid.configuration.statusEnabled
+    Component.onDestruction: EngineNS.Engine.releaseOwner(root)
 
-        onArrived: items => root.announce(items)
-        onMuteRequested: repo => root.muteRepo(repo)
+    Connections {
+        target: root.engine
+        enabled: root.notifyOwner
+
+        function onArrived(items) {
+            root.announce(items);
+        }
+        function onMuteRequested(repo) {
+            root.muteRepo(repo);
+        }
     }
 
     // ── applet status ───────────────────────────────────────────────────────

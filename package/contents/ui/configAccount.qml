@@ -14,6 +14,8 @@ KCM.SimpleKCM {
     property alias cfg_graphqlToken: graphField.text
     property alias cfg_useGhCli: ghBox.checked
     property alias cfg_repoAllowlist: allowlistField.text
+    /** Not aliased to a control: the list below edits this string directly. */
+    property string cfg_mutedRepos: ""
     property alias cfg_watchRepoCount: watchCount.value
     property alias cfg_includeOrgRepos: orgReposBox.checked
     property alias cfg_copilotOrg: orgField.text
@@ -34,6 +36,13 @@ KCM.SimpleKCM {
                 page.checkDetail = res.error === GH.ERR.AUTH ? i18n("GitHub rejected this token.") : res.error === GH.ERR.OFFLINE ? i18n("No network connection.") : (res.message || res.error);
             }
         });
+    }
+
+    /** "owner/repo, owner/repo" → ["owner/repo", "owner/repo"], empty entries dropped. */
+    readonly property var mutedList: page.cfg_mutedRepos.split(",").map(s => s.trim()).filter(s => s.length > 0)
+
+    function unmute(repo) {
+        page.cfg_mutedRepos = page.mutedList.filter(r => r !== repo).join(", ");
     }
 
     Kirigami.FormLayout {
@@ -162,6 +171,50 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Layout.minimumHeight: Kirigami.Units.gridUnit * 4
             wrapMode: TextEdit.WordWrap
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.Label {
+            Kirigami.FormData.label: i18n("Muted repositories:")
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
+            visible: page.mutedList.length === 0
+            text: i18n("None. Mute a repository from its row's ⋯ menu in the popup.")
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: page.mutedList.length > 0
+            spacing: Kirigami.Units.smallSpacing
+
+            Repeater {
+                model: page.mutedList
+
+                delegate: RowLayout {
+                    required property string modelData
+
+                    Layout.fillWidth: true
+                    spacing: Kirigami.Units.smallSpacing
+
+                    QQC2.Label {
+                        text: parent.modelData
+                        font.family: "monospace"
+                        elide: Text.ElideMiddle
+                        Layout.fillWidth: true
+                    }
+
+                    QQC2.Button {
+                        text: i18n("Unmute")
+                        icon.name: "notifications"
+                        onClicked: page.unmute(parent.modelData)
+                    }
+                }
+            }
         }
 
         Item {

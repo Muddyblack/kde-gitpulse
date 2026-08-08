@@ -23,8 +23,15 @@ PlasmaComponents.ScrollView {
     readonly property Tones tones: Tones {}
 
     contentWidth: availableWidth
+    // Explicit, not left to auto-detection: with every section this tab now
+    // has (streak summary, trend chart, rhythm bars, languages), content
+    // reliably runs taller than the popup, and the ScrollView needs a real
+    // contentHeight to know there is anything to scroll to.
+    contentHeight: content.implicitHeight
 
     ColumnLayout {
+        id: content
+
         width: tab.availableWidth
         spacing: Kirigami.Units.smallSpacing * 2
 

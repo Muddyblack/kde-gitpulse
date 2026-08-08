@@ -3,10 +3,17 @@
 // Deliberately free of any Plasma import: the Quickshell frontend instantiates
 // this exact file. Hosts set the input properties, read the output properties
 // and call the action methods; nothing in here knows what a plasmoid is.
+//
+// Singleton (pragma below + engine/qmldir): a host may place several copies of
+// the UI in one process — one Gitpulse panel widget per monitor is exactly
+// that — and without this each copy ran its own independent poller against
+// the same GitHub token, tripling API usage for no benefit. One process, one
+// engine, however many views are looking at it.
+pragma Singleton
 import QtQuick
 
-import "../code/GitHub.js" as GH
-import "../code/Contract.js" as Contract
+import "../../code/GitHub.js" as GH
+import "../../code/Contract.js" as Contract
 
 QtObject {
     id: engine
@@ -129,6 +136,29 @@ QtObject {
     function muteRepo(repo) {
         if (repo)
             engine.muteRequested(repo);
+    }
+
+    /**
+     * Multi-instance ownership.
+     *
+     * A shared engine can be watched by several hosts at once (one panel
+     * placement per monitor, say). Only one of them should act on `arrived`/
+     * `muteRequested` — otherwise the same event fires a desktop notification
+     * or a config write once per placement. Whichever host asks first owns
+     * it; if that host is destroyed (its placement removed), the next asker
+     * takes over.
+     */
+    property var _owner: null
+
+    function claimOwner(host) {
+        if (!engine._owner)
+            engine._owner = host;
+        return engine._owner === host;
+    }
+
+    function releaseOwner(host) {
+        if (engine._owner === host)
+            engine._owner = null;
     }
 
     /**

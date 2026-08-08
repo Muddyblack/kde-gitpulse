@@ -57,6 +57,7 @@ PlasmaExtras.Representation {
     background: Rectangle {
         readonly property bool glass: Plasmoid.configuration.surfaceMode === "glass"
 
+        anchors.fill: parent
         visible: glass
         radius: Kirigami.Units.cornerRadius * 2
         color: Qt.rgba(Kirigami.Theme.backgroundColor.r, Kirigami.Theme.backgroundColor.g, Kirigami.Theme.backgroundColor.b, Plasmoid.configuration.popupOpacity)

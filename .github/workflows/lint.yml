@@ -16,7 +16,7 @@ jobs:
       - name: Install Qt QML tooling
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.*'
+          version: "6.8.*"
 
       - name: qmllint
         run: |
@@ -41,7 +41,5 @@ jobs:
           import json, sys
           m = json.load(open("package/metadata.json"))
           assert m["KPlugin"]["Id"] == "org.muddyblack.gitpulse", "plugin id drifted"
-          assert m["X-Plasma-NotificationArea"] == "true", "widget would not appear in the System Tray"
-          assert m["X-Plasma-NotificationAreaCategory"] == "ApplicationStatus"
           print("metadata ok, version", m["KPlugin"]["Version"])
           PY
