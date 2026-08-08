@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+
+    <!-- Credentials.
+         Stored in the per-user plasmoid config under $XDG_CONFIG_HOME, which
+         is mode 0600 and not world readable. Gitpulse only ever asks for
+         read scopes, so a leaked token cannot mutate anything. -->
+    <entry name="token" type="String">
+      <default></default>
+    </entry>
+    <!-- Optional classic token used only for the GraphQL profile query, for
+         when the main token is fine-grained and GraphQL refuses it. -->
+    <entry name="graphqlToken" type="String">
+      <default></default>
+    </entry>
+    <!-- Borrow the GitHub CLI's stored credential instead of pasting one. -->
+    <entry name="useGhCli" type="Bool">
+      <default>false</default>
+    </entry>
+
+    <!-- Inbox -->
+    <entry name="participatingOnly" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="includeRead" type="Bool">
+      <default>false</default>
+    </entry>
+
+    <!-- Which tabs exist at all -->
+    <entry name="actionsEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="pullsEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="issuesEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="profileEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="copilotEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="statusEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="defaultTab" type="String">
+      <default>inbox</default>
+    </entry>
+
+    <!-- Poll intervals, in seconds. Separate per source because the search
+         API is far more expensive than the notifications endpoint, and the
+         profile changes about once a day. -->
+    <entry name="inboxIntervalSec" type="Int">
+      <default>60</default>
+      <min>30</min>
+    </entry>
+    <entry name="searchIntervalSec" type="Int">
+      <default>180</default>
+      <min>60</min>
+    </entry>
+    <entry name="actionsIntervalSec" type="Int">
+      <default>300</default>
+      <min>60</min>
+    </entry>
+    <entry name="profileIntervalSec" type="Int">
+      <default>1800</default>
+      <min>300</min>
+    </entry>
+    <entry name="statusIntervalSec" type="Int">
+      <default>180</default>
+      <min>60</min>
+    </entry>
+
+    <!-- Scope -->
+    <entry name="watchRepoCount" type="Int">
+      <default>6</default>
+      <min>1</min>
+      <max>25</max>
+    </entry>
+    <!-- Off by default: one big organisation otherwise floods the Actions tab
+         with pipelines the user has never touched. -->
+    <entry name="includeOrgRepos" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="repoAllowlist" type="String">
+      <default></default>
+    </entry>
+    <entry name="mutedRepos" type="String">
+      <default></default>
+    </entry>
+    <entry name="copilotOrg" type="String">
+      <default></default>
+    </entry>
+
+    <!-- Appearance.
+         The system accent (including Plasma 6's accent-from-wallpaper) is the
+         default; "custom" is for people who want this one widget to stand out. -->
+    <entry name="accentMode" type="String">
+      <default>system</default>
+    </entry>
+    <entry name="customAccent" type="String">
+      <default></default>
+    </entry>
+    <!-- solid | translucent | glass.
+         translucent hands the job to Plasma's own blurred dialog background;
+         glass paints a tinted card with a lit top edge, matching the rest of
+         this widget collection. -->
+    <entry name="surfaceMode" type="String">
+      <default>solid</default>
+    </entry>
+    <entry name="popupOpacity" type="Double">
+      <default>0.85</default>
+      <min>0.35</min>
+      <max>1.0</max>
+    </entry>
+
+    <!-- Behaviour -->
+    <entry name="notifyEnabled" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="groupByRepo" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="undoWindowSec" type="Int">
+      <default>6</default>
+      <min>0</min>
+      <max>30</max>
+    </entry>
+
+  </group>
+</kcfg>

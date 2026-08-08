@@ -1,0 +1,26 @@
+# Build artifacts
+*.plasmoid
+build/
+plan.md
+notes.md
+
+# Nix
+result
+result-*
+.direnv/
+.envrc
+
+# Local settings that may contain a token — never commit these
+hyprland-settings.json
+*.token
+
+# Editor junk
+*~
+*.swp
+*.swo
+.idea/
+.vscode/
+.qmlls.ini
+
+# System junk
+.DS_Store
