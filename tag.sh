@@ -163,7 +163,10 @@ if ! git diff-index --quiet HEAD --; then
     git_commit_with_hook_retry "$commit_msg"
 fi
 
-if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+# Check the fully qualified ref so this lookup cannot match a branch or other
+# ref with the same version name.
+if git rev-parse --verify --quiet "refs/tags/${TAG_NAME}" >/dev/null
+then
     echo "Warning: Tag ${TAG_NAME} already exists."
     read -rp "Overwrite? [y/N]: " recreate_tag
     if [[ "$recreate_tag" =~ ^[Yy]$ ]]; then
