@@ -6,6 +6,7 @@
 import QtQuick
 import QtQuick.Layouts
 
+import "../package/contents/ui/shared" as Shared
 import "../package/contents/code/Format.js" as Format
 
 Rectangle {
@@ -99,7 +100,7 @@ Rectangle {
             Layout.fillWidth: true
             spacing: entry.theme.spacingSmall * 1.5
 
-            Pill {
+            Shared.Pill {
                 theme: entry.theme
                 text: entry.incident.impact || "unknown"
                 tone: entry.tone

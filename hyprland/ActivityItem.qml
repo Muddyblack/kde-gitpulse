@@ -6,6 +6,7 @@
 import QtQuick
 import QtQuick.Layouts
 
+import "../package/contents/ui/shared" as Shared
 import "../package/contents/code/Format.js" as Format
 import "Icons.js" as Glyphs
 
@@ -23,6 +24,7 @@ Rectangle {
     signal dismissed
     signal toggleExpanded
 
+    readonly property QuickshellIconAdapter iconAdapter: QuickshellIconAdapter {}
     readonly property bool unread: row.item.unread === true
     readonly property bool running: row.item.running === true
     readonly property bool showActions: hover.hovered || row.selected || row.expanded
@@ -173,12 +175,13 @@ Rectangle {
                     Layout.maximumWidth: Math.max(60, layout.width * 0.62)
                 }
 
-                Pill {
+                Shared.Pill {
                     theme: row.theme
                     text: row.item.label
                     tone: row.item.tone
                     iconName: Glyphs.forItem(row.item)
                     spinning: row.running
+                    iconDelegate: row.iconAdapter.delegate
                 }
 
                 Item {

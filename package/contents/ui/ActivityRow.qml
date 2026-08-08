@@ -8,6 +8,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
+import "shared" as Shared
 import "../code/Format.js" as Fmt
 
 Item {
@@ -24,6 +25,7 @@ Item {
     signal openUrlRequested(string url)
 
     readonly property Tones tones: Tones {}
+    readonly property KirigamiIconAdapter iconAdapter: KirigamiIconAdapter {}
     readonly property bool unread: row.item.unread === true
 
     implicitHeight: layout.implicitHeight
@@ -147,10 +149,12 @@ Item {
                         Layout.maximumWidth: parent.width * 0.55
                     }
 
-                    Pill {
+                    Shared.Pill {
+                        theme: row.tones
                         text: row.item.label
                         tone: row.item.tone
                         iconName: row.item.icon
+                        iconDelegate: row.iconAdapter.delegate
                     }
 
                     Item {

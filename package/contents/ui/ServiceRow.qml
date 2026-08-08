@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
+import "shared" as Shared
 import "../code/Format.js" as Fmt
 
 ColumnLayout {
@@ -39,7 +40,8 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
-        Pill {
+        Shared.Pill {
+            theme: service.tones
             text: Fmt.humanise(service.status)
             tone: service.tone
         }

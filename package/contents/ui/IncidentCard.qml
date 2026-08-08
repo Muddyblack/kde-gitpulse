@@ -5,6 +5,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.plasmoid
 
+import "shared" as Shared
 import "../code/Format.js" as Fmt
 
 Rectangle {
@@ -90,7 +91,8 @@ Rectangle {
             spacing: Kirigami.Units.smallSpacing
             Layout.fillWidth: true
 
-            Pill {
+            Shared.Pill {
+                theme: card.tones
                 text: card.incident.impact || "unknown"
                 tone: card.tone
             }
