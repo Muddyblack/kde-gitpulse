@@ -26,6 +26,80 @@ fi
 
 cd "$HERE"
 
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+# Files that pre-commit auto-fixed: unstaged changes on paths that are still staged.
+# Does NOT pick up other dirty/untracked files outside the commit.
+hook_fixed_files() {
+    local staged unstaged
+    staged="$(git diff --cached --name-only --diff-filter=ACMR | sort -u)"
+    unstaged="$(git diff --name-only | sort -u)"
+    if [[ -z "$staged" || -z "$unstaged" ]]; then
+        return 0
+    fi
+    comm -12 <(printf '%s\n' "$staged") <(printf '%s\n' "$unstaged")
+}
+
+# Commit once; if hooks rewrote staged files, optionally stage only those fixes and retry.
+# Reuses the same commit message — no re-prompt for bump / message.
+git_commit_with_hook_retry() {
+    local commit_msg="$1"
+    local max_attempts="${2:-3}"
+    local attempt=1
+    local rc=0
+    local fixed
+    local retry_choice
+    local f
+
+    while (( attempt <= max_attempts )); do
+        set +e
+        git commit -m "$commit_msg"
+        rc=$?
+        set -e
+
+        if [[ $rc -eq 0 ]]; then
+            return 0
+        fi
+
+        fixed="$(hook_fixed_files || true)"
+        if [[ -z "$fixed" ]]; then
+            echo "" >&2
+            echo "Commit failed (exit $rc). No hook auto-fixes detected on staged files." >&2
+            echo "Fix the reported issues, then re-run. Version bump (if any) is already in metadata.json." >&2
+            return "$rc"
+        fi
+
+        echo ""
+        echo "Pre-commit hooks modified these staged files:"
+        while IFS= read -r f; do
+            [[ -n "$f" ]] && printf '  %s\n' "$f"
+        done <<< "$fixed"
+        echo ""
+
+        if (( attempt >= max_attempts )); then
+            echo "Still failing after ${max_attempts} attempts. Not retrying again." >&2
+            return "$rc"
+        fi
+
+        # Default yes — Enter continues without restarting the whole tag flow.
+        read -rp "Stage only these hook fixes and retry commit? [Y/n]: " retry_choice
+        if [[ "$retry_choice" =~ ^[Nn]$ ]]; then
+            echo "Aborting. Staged release changes are left as-is; metadata version may already be bumped."
+            return 1
+        fi
+
+        while IFS= read -r f; do
+            [[ -n "$f" ]] && git add -- "$f"
+        done <<< "$fixed"
+
+        attempt=$((attempt + 1))
+        echo "Retrying commit (attempt ${attempt}/${max_attempts})..."
+        echo ""
+    done
+
+    return "$rc"
+}
+
 # ── version bump ─────────────────────────────────────────────────────────────
 CURRENT_VERSION="$(grep -oE '"Version":[[:space:]]*"[^"]+"' "$METADATA_FILE" | head -1 | sed -E 's/.*"([^"]+)"$/\1/')"
 
@@ -73,12 +147,6 @@ NEW_VERSION="${NEW_NUMERIC}${NEW_SUFFIX}"
 TAG_NAME="v${NEW_VERSION}"
 
 echo ""
-echo "New version: ${NEW_VERSION}"
-read -rp "Confirm? [Y/n]: " confirm
-if [[ "$confirm" =~ ^[Nn]$ ]]; then
-    echo "Aborting."
-    exit 0
-fi
 
 # Write new version to metadata.json
 sed -i "s/\"Version\": \"${CURRENT_VERSION}\"/\"Version\": \"${NEW_VERSION}\"/" "$METADATA_FILE"
@@ -92,7 +160,7 @@ if ! git diff-index --quiet HEAD --; then
         commit_msg="chore: release ${TAG_NAME}"
     fi
     git add .
-    git commit -m "$commit_msg"
+    git_commit_with_hook_retry "$commit_msg"
 fi
 
 if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
