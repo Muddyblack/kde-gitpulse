@@ -6,7 +6,7 @@
     "Description": "The pulse of your repos — notifications, CI runs, pull requests, issues, profile and GitHub service health in your panel",
     "Icon": "org.muddyblack.gitpulse",
     "Category": "Online Services",
-    "Version": "1.0.1",
+    "Version": "1.0.2",
     "Website": "https://github.com/Muddyblack/kde-gitpulse",
     "Authors": [
       {
