@@ -29,6 +29,11 @@ QtObject {
     }
 
     onEnabledChanged: gh.refresh()
+    // `enabled` can already be true when this object is created — e.g. config
+    // set declaratively (NixOS/home-manager) rather than toggled in the UI —
+    // in which case onEnabledChanged never sees a false→true transition to
+    // react to.
+    Component.onCompleted: gh.refresh()
 
     // `command -v` first so a missing binary is distinguishable from a missing
     // login — they need different advice.
