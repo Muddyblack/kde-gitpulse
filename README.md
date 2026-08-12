@@ -167,7 +167,8 @@ Or manually, from a checkout:
 
 ```sh
 cmake -S hyprland/tray -B build && cmake --build build
-./build/gitpulse-tray "$(command -v qs)" "$PWD/shell.qml" &
+./build/gitpulse-tray "$(command -v qs)" "$PWD/shell.qml" \
+  "$PWD/package/contents/icons/org.muddyblack.gitpulse.svg" &
 qs -p "$PWD/shell.qml"
 ```
 

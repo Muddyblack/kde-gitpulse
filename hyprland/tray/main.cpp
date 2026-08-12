@@ -12,22 +12,21 @@
 #include <QApplication>
 #include <QColor>
 #include <QIcon>
-#include <QLinearGradient>
 #include <QMenu>
 #include <QPainter>
-#include <QPainterPath>
-#include <QPen>
 #include <QPixmap>
 #include <QProcess>
 #include <QString>
+#include <QSvgRenderer>
 #include <QSystemTrayIcon>
 #include <QTimer>
 
 namespace {
 
-/// The Gitpulse mark: a pulse trace on a rounded tile, matching the SVG the
-/// Plasma package installs.
-QIcon renderIcon(const QString &badge)
+/// Renders the same org.muddyblack.gitpulse.svg the Plasma package installs,
+/// so the Hyprland tray icon is the actual mark rather than a hand-drawn
+/// stand-in for it.
+QIcon renderIcon(const QString &iconPath, const QString &badge)
 {
     QPixmap pixmap(64, 64);
     pixmap.fill(Qt::transparent);
@@ -35,24 +34,9 @@ QIcon renderIcon(const QString &badge)
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QLinearGradient gradient(4, 4, 60, 60);
-    gradient.setColorAt(0.0, QColor("#3daee9"));
-    gradient.setColorAt(1.0, QColor("#7c5cff"));
-
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(gradient);
-    painter.drawRoundedRect(QRectF(4, 4, 56, 56), 16, 16);
-
-    QPainterPath trace;
-    trace.moveTo(12, 32);
-    trace.lineTo(20, 32);
-    trace.lineTo(25, 19);
-    trace.lineTo(34, 45);
-    trace.lineTo(38, 32);
-    trace.lineTo(52, 32);
-    painter.setPen(QPen(QColor("#ffffff"), 4.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-    painter.setBrush(Qt::NoBrush);
-    painter.drawPath(trace);
+    QSvgRenderer renderer(iconPath);
+    if (renderer.isValid())
+        renderer.render(&painter, QRectF(4, 4, 56, 56));
 
     if (!badge.isEmpty() && badge != QLatin1String("0")) {
         // Same rule as the plasmoid: the badge only ever shows "needs you".
@@ -81,13 +65,14 @@ int main(int argc, char **argv)
     app.setApplicationName(QStringLiteral("Gitpulse"));
     app.setQuitOnLastWindowClosed(false);
 
-    if (argc != 3) {
-        qWarning("usage: gitpulse-tray <path-to-qs> <path-to-shell.qml>");
+    if (argc != 4) {
+        qWarning("usage: gitpulse-tray <path-to-qs> <path-to-shell.qml> <path-to-icon.svg>");
         return 2;
     }
 
     const QString qsPath = QString::fromLocal8Bit(argv[1]);
     const QString configPath = QString::fromLocal8Bit(argv[2]);
+    const QString iconPath = QString::fromLocal8Bit(argv[3]);
 
     const auto call = [&](const QString &method) {
         QProcess::startDetached(qsPath, {"ipc", "-p", configPath, "call", "panel", method});
@@ -103,7 +88,7 @@ int main(int argc, char **argv)
         return QString::fromUtf8(process.readAllStandardOutput()).trimmed();
     };
 
-    QSystemTrayIcon tray{renderIcon(QString())};
+    QSystemTrayIcon tray{renderIcon(iconPath, QString())};
     tray.setToolTip(QStringLiteral("Gitpulse"));
 
     QString lastBadge;
@@ -111,7 +96,7 @@ int main(int argc, char **argv)
         const QString badge = ask(QStringLiteral("badge"));
         if (badge != lastBadge) {
             lastBadge = badge;
-            tray.setIcon(renderIcon(badge));
+            tray.setIcon(renderIcon(iconPath, badge));
         }
         const QString summary = ask(QStringLiteral("summary"));
         tray.setToolTip(summary.isEmpty() ? QStringLiteral("Gitpulse") : summary);

@@ -52,7 +52,7 @@
             version = metadata.KPlugin.Version;
             src = ./hyprland/tray;
             nativeBuildInputs = with pkgs; [ cmake ninja qt6.wrapQtAppsHook ];
-            buildInputs = with pkgs; [ qt6.qtbase ];
+            buildInputs = with pkgs; [ qt6.qtbase qt6.qtsvg ];
           };
         });
 
@@ -106,13 +106,14 @@
               # at the entry point's directory, and hyprland/ cannot reach the
               # shared JS under package/. See shell.qml.
               config=${self}/shell.qml
+              icon=${self}/package/contents/icons/${appletId}.svg
               desktop_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/applications"
               ${pkgs.coreutils}/bin/mkdir -p "$desktop_dir"
               ${pkgs.coreutils}/bin/install -m 0644 \
                 ${quickshellDesktop}/share/applications/org.quickshell.desktop \
                 "$desktop_dir/org.quickshell.desktop"
               ${self.packages.${system}.tray-helper}/bin/gitpulse-tray \
-                ${pkgs.quickshell}/bin/qs "$config" &
+                ${pkgs.quickshell}/bin/qs "$config" "$icon" &
               tray_pid=$!
               trap 'kill "$tray_pid" 2>/dev/null || true' EXIT INT TERM
               ${pkgs.quickshell}/bin/qs -p "$config"
