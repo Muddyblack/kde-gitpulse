@@ -10,7 +10,7 @@ import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Forge.js" as Forge
 import "engine" as EngineNS
 
 PlasmoidItem {
@@ -81,6 +81,14 @@ PlasmoidItem {
             Qt.openUrlExternally(url);
     }
 
+    /** The web inbox of `item`'s forge, or of the first account. */
+    function inboxUrl(item) {
+        var acct = item ? root.engine.accountFor(item.account) : null;
+        if (!acct)
+            acct = root.engine.liveAccounts.length ? root.engine.liveAccounts[0] : null;
+        return acct ? Forge.notificationsUrl(acct) : "";
+    }
+
     /** The engine cannot persist anything; configuration is the applet's job. */
     function muteRepo(repo) {
         var list = String(Plasmoid.configuration.mutedRepos || "").split(",").map(function (s) {
@@ -93,11 +101,37 @@ PlasmoidItem {
         Plasmoid.configuration.mutedRepos = list.join(", ");
     }
 
-    // ── credentials ─────────────────────────────────────────────────────────
+    // ── accounts ────────────────────────────────────────────────────────────
+    //
+    // One JSON string holds the whole account list; configAccount.qml edits it
+    // and the engine parses it. Plasma's kcfg has no list type, and teaching
+    // it one would put the account schema in three places instead of one.
+    readonly property string accountsJson: Plasmoid.configuration.accounts
+
+    readonly property var accounts: Forge.parse(root.accountsJson)
+
+    /** Only ask `gh` for a token when an account actually wants to borrow it. */
     readonly property GhToken gh: GhToken {
-        enabled: Plasmoid.configuration.useGhCli
+        enabled: root.accounts.some(a => a.useCli)
     }
-    readonly property string activeToken: Plasmoid.configuration.useGhCli ? root.gh.token : Plasmoid.configuration.token
+
+    /**
+     * Carry a 1.x single-token configuration into the account list.
+     *
+     * Done once, on first run after the upgrade, and the old keys are cleared
+     * so a later edit of the account cannot be silently overwritten by them.
+     */
+    function migrateLegacyConfig() {
+        if (Plasmoid.configuration.accounts !== "")
+            return;
+        var moved = Forge.migrate(Plasmoid.configuration.token, Plasmoid.configuration.graphqlToken, Plasmoid.configuration.useGhCli);
+        if (!moved.length)
+            return;
+        Plasmoid.configuration.accounts = Forge.stringify(moved);
+        Plasmoid.configuration.token = "";
+        Plasmoid.configuration.graphqlToken = "";
+        Plasmoid.configuration.useGhCli = false;
+    }
 
     // ── engine ──────────────────────────────────────────────────────────────
     //
@@ -111,13 +145,23 @@ PlasmoidItem {
 
     Binding {
         target: root.engine
-        property: "token"
-        value: root.activeToken
+        property: "accountsJson"
+        value: root.accountsJson
     }
     Binding {
         target: root.engine
-        property: "graphqlToken"
-        value: Plasmoid.configuration.graphqlToken
+        property: "cliToken"
+        value: root.gh.token
+    }
+    Binding {
+        target: root.engine
+        property: "quietFromHour"
+        value: Plasmoid.configuration.quietHoursEnabled ? Plasmoid.configuration.quietFromHour : 0
+    }
+    Binding {
+        target: root.engine
+        property: "quietToHour"
+        value: Plasmoid.configuration.quietHoursEnabled ? Plasmoid.configuration.quietToHour : 0
     }
     Binding {
         target: root.engine
@@ -238,7 +282,7 @@ PlasmoidItem {
     // The whole point of being a plasmoid: with nothing to report the icon
     // folds into the tray overflow instead of sitting there showing a zero.
     Plasmoid.status: {
-        if (root.activeToken === "")
+        if (!root.engine.configured)
             return PlasmaCore.Types.ActiveStatus;
         if (root.engine.badge.needsYou > 0)
             return PlasmaCore.Types.NeedsAttentionStatus;
@@ -266,7 +310,7 @@ PlasmoidItem {
     // Plasma's own "this widget needs setting up" affordance, already
     // translated and already wired to the config dialog. Plasma 6 exposes only
     // the flag to QML — the accompanying sentence is the popup banner's job.
-    Plasmoid.configurationRequired: root.activeToken === ""
+    Plasmoid.configurationRequired: !root.engine.configured
 
     toolTipMainText: i18n("Gitpulse")
     toolTipSubText: root.engine.badge.needsYou > 0 ? i18np("%1 item needs you", "%1 items need you", root.engine.badge.needsYou) : i18n("Nothing needs you")
@@ -313,7 +357,7 @@ PlasmoidItem {
         PlasmaCore.Action {
             text: i18n("Open Notifications…")
             icon.name: "internet-services"
-            onTriggered: root.openUrl(GH.notificationsUrl())
+            onTriggered: root.openUrl(root.inboxUrl(null))
         }
     ]
 
@@ -334,7 +378,7 @@ PlasmoidItem {
             notifier.text = items.slice(0, 3).map(function (i) {
                 return i.repo + " — " + i.title;
             }).join("\n");
-            notifier.pendingUrl = GH.notificationsUrl();
+            notifier.pendingUrl = root.inboxUrl(null);
         }
         notifier.sendEvent();
     }
@@ -355,5 +399,8 @@ PlasmoidItem {
         }
     }
 
-    Component.onCompleted: root.engine.start()
+    Component.onCompleted: {
+        root.migrateLegacyConfig();
+        root.engine.start();
+    }
 }

@@ -23,7 +23,8 @@
 <p align="center"><strong>The pulse of your repos, in your panel.</strong></p>
 
 <p align="center">
-  GitHub notifications, CI runs, pull requests, issues, your profile and GitHub service health —<br>
+  Notifications, CI runs, pull requests, issues, your profile and service health —<br>
+  from <strong>GitHub</strong>, <strong>GitLab</strong> and <strong>Codeberg</strong>, in one panel,<br>
   as a native <strong>KDE Plasma 6</strong> widget or <strong>Hyprland / Quickshell</strong> panel.
 </p>
 
@@ -31,13 +32,13 @@
   <img src="readme/panel.svg" width="264" alt="Gitpulse in a desktop panel">
 </p>
 
-> Built for KDE Plasma 6 and Hyprland / Quickshell, with one shared GitHub core.
+> Built for KDE Plasma 6 and Hyprland / Quickshell, with one shared core.
 
 ## At a glance
 
-| Native to your desktop | Knows what needs you | Keeps the details nearby |
+| Native to your desktop | Every forge you use | Knows what needs you |
 | --- | --- | --- |
-| One shared core, with a Plasma plasmoid and Hyprland / Quickshell frontend. | The badge counts things blocking **you**, not every unread notification. | Inspect workflow runs, reviews, service health, profile activity, and more without opening a browser. |
+| One shared core, with a Plasma plasmoid and Hyprland / Quickshell frontend. | GitHub, GitLab and Codeberg side by side — public or self-hosted, as many accounts as you like. | The badge counts things blocking **you**, not every unread notification. |
 
 ## A closer look
 
@@ -55,8 +56,25 @@
 
 Gitpulse is available as a **KDE Plasma 6** plasmoid and a **Hyprland /
 Quickshell** panel. It uses the desktop notification system, follows your
-Plasma theme and accent colour, and uses your GitHub avatar as the tray icon
-when signed in.
+Plasma theme and accent colour, and uses your avatar as the tray icon when
+signed in.
+
+## Every forge, one inbox
+
+| | Inbox | Pulls & issues | Pipelines | Profile |
+| --- | :-: | :-: | :-: | :-: |
+| **GitHub** — github.com or Enterprise Server | notifications | ✓ | Actions | full, incl. heatmap |
+| **GitLab** — gitlab.com or self-hosted | todos | merge requests | pipelines | heatmap + dial |
+| **Codeberg** — or any Forgejo / Gitea instance | notifications | ✓ | Forgejo Actions | heatmap + dial |
+
+Add as many accounts as you like, on any mix of the three. Items from every
+account land in the same lists, sorted together, counted by one badge — and
+cross-tab de-duplication is scoped per account, so `owner/repo#1` on two
+different forges stays two different things.
+
+A forge that does not have a feature says so in its account card rather than
+leaving an empty tab to be discovered later: Copilot and the GitHub service
+status page are GitHub-only, and Forgejo has no API for re-running a workflow.
 
 ## Everything in the popup
 
@@ -66,7 +84,7 @@ when signed in.
 | **Actions** | Workflow runs across your recently-pushed repos, failures first |
 | **Pulls** | Pull requests awaiting your review, and your own |
 | **Issues** | Issues you are involved in, assignment highlighted |
-| **Profile** | Stats, a contribution heatmap in your accent colour, language mix |
+| **Profile** | Stats, a contribution heatmap in your accent colour, an hour-of-day commit dial, language mix |
 | **Copilot** | Copilot service health and billed usage |
 | **Status** | GitHub service health with a 90-day incident strip per component |
 
@@ -80,6 +98,17 @@ open issue on your plate is tracked but never inflates it.
 Cross-tab de-duplication means a `review_requested` notification and the pull
 request behind it count **once** — the inbox wins, because that is where the
 action lives.
+
+GitLab and Codeberg do not send GitHub's `reason` field, so their providers map
+their own signals onto the same vocabulary: a GitLab `review_requested` todo
+and a Forgejo pull-request notification reach the badge for exactly the same
+reason a GitHub one does.
+
+### Quiet hours
+
+Set a window in **Behaviour** and Gitpulse stops interrupting inside it. The
+badge and every list keep updating — only the desktop notification is withheld,
+so the count is right the moment you next look at the panel.
 
 ---
 
@@ -121,37 +150,46 @@ package declares `X-Plasma-NotificationArea`, so it is offered there.
 
 ---
 
-## Token
+## Accounts
 
-Gitpulse only ever reads. Create a token at
-**github.com ▸ Settings ▸ Developer settings ▸ Personal access tokens**, then
-paste it into the widget's **Account** settings page and press **Check** — it
-tells you immediately whether GitHub accepted it and who it signed you in as.
+Gitpulse only ever reads. Open the widget's **Accounts** page, press
+**Add account…**, pick the forge, paste a token and press **Check** — it tells
+you immediately whether the server accepted it and who it signed you in as.
 
-A **classic** token wants:
+Leave **Server** empty for the public instance, or point it at a self-hosted
+one. GitHub Enterprise Server, a private GitLab and any Forgejo or Gitea
+instance all work through the same three providers.
 
-| Scope | For |
-| --- | --- |
-| `notifications` | the Inbox tab |
-| `repo` | private repositories, and Actions runs in them |
-| `read:org` | organisation repositories |
-| `read:user` | the Profile tab's contribution graph |
+| Forge | Create a token at | Scopes |
+| --- | --- | --- |
+| **GitHub** | Settings ▸ Developer settings ▸ Personal access tokens | `notifications`, `repo` (read), `read:org`, `read:user` |
+| **GitLab** | Preferences ▸ Access tokens | `read_api`, `read_user` |
+| **Codeberg / Forgejo** | Settings ▸ Applications | `read:notification`, `read:repository`, `read:issue`, `read:user` |
 
-Fine-grained tokens work for everything except the contribution heatmap:
-GitHub's GraphQL `contributionsCollection` is not available to them. The
-Profile tab degrades to stats-without-heatmap and says so rather than failing.
+On GitHub you can skip the token entirely and tick **Borrow the GitHub CLI's
+token** — Gitpulse then reads whatever `gh auth token` already stores and
+creates nothing of its own.
 
-The token is stored in the widget's own config file under
-`$XDG_CONFIG_HOME`, which is not world-readable. On the Hyprland side it lives
-in `$XDG_CONFIG_HOME/gitpulse/hyprland-settings.json`, written atomically and
+Fine-grained GitHub tokens work for everything except the contribution
+heatmap: GitHub's GraphQL `contributionsCollection` is not available to them.
+Give that one account a classic **Profile token** with `read:user`, or let the
+Profile tab degrade to stats-without-heatmap — it says which, rather than
+failing whole.
+
+Tokens are stored in the widget's own config file under `$XDG_CONFIG_HOME`,
+which is not world-readable. On the Hyprland side that is
+`$XDG_CONFIG_HOME/gitpulse/hyprland-settings.json`, written atomically and
 listed in `.gitignore`.
+
+Upgrading from 1.x needs no action: the single GitHub token you had becomes
+your first account the first time the widget starts.
 
 ### Rate limit
 
 Defaults poll the inbox every 60 s, searches every 180 s and Actions every
-300 s — roughly 170 of GitHub's 5000 requests per hour, worst case. Every GET
-carries its previous `ETag`, and GitHub does not count a `304` against the
-limit, so the real figure is usually far lower. The Sources settings page shows
+300 s — roughly 170 of GitHub's 5000 requests per hour, worst case, per
+account. Every GET carries its previous `ETag`, and GitHub does not count a
+`304` against the limit, so the real figure is usually far lower. The Sources settings page shows
 the estimate live as you change the intervals, and the popup footer shows what
 is actually left.
 
@@ -240,7 +278,14 @@ Stated plainly, because the alternative is inventing numbers:
   uptime series behind the bars on its own site. Gitpulse builds its strips
   from the incident feed and labels them "incident-free days" — not an uptime
   percentage, because it is not one.
-- **Contribution heatmaps need a classic token** (see above).
+- **Contribution heatmaps need a classic token on GitHub** (see above). GitLab
+  and Forgejo publish theirs to any read token.
+- **The hour dial is a shape, not a census.** On GitHub it is real
+  `committedDate` timestamps from the repositories you have pushed to recently,
+  and it falls back to the public event feed when the token cannot do GraphQL —
+  which is public activity only. On GitLab and Forgejo it comes from the
+  activity feed those forges already expose. In every case it answers "when do
+  I work", not "how much have I ever done".
 
 ---
 
@@ -249,7 +294,8 @@ Stated plainly, because the alternative is inventing numbers:
 ```sh
 nix develop          # qmllint, qmlformat, qml, plasma-sdk, pre-commit
 make help            # list targets
-make test            # shared-core unit tests + engine smoke test
+make test            # unit tests, engine smoke test, and both UIs rendered
+make shots           # PNG per tab for both frontends, into build/shots
 make lint            # qmllint every QML file
 make format          # qmlformat in place
 make view            # preview the widget standalone
@@ -260,20 +306,66 @@ make install         # install into the running Plasma session
 
 ```
 package/contents/
-  code/       GitHub.js · Contract.js · Format.js   — the whole GitHub layer
+  code/       Http.js        — transport, caching, one error vocabulary
+              Contract.js    — the item shape, badge arithmetic, calendars
+              GitHub.js      — GitHub / GHES endpoints + normalisation
+              GitLab.js      — GitLab endpoints + normalisation
+              Forgejo.js     — Codeberg / Forgejo / Gitea, same
+              Forge.js       — the registry: accounts in, a provider out
+              Format.js      — presentation helpers
   ui/         Engine.qml + the Plasma UI
+  ui/shared/  QtQuick-only components both frontends use unchanged
   config/     main.xml (kcfg) + the config dialog pages
 hyprland/     Quickshell frontend, reusing code/ and Engine.qml unchanged
   tray/       Qt Widgets StatusNotifier binary that drives it over qs ipc
-tests/        run-tests.qml (pure logic) · engine-smoke.qml (runtime)
+tests/        run-tests.qml     — pure logic, every provider
+              engine-smoke.qml  — the engine actually runs
+              hyprland-smoke.qml / plasma-smoke.qml — both UIs render
+              stubs/            — stand-in Plasma modules for the Plasma test
 ```
 
-`GitHub.js` is transport and error classification, `Contract.js` normalises
-five different payload shapes into one item and owns the badge arithmetic, and
-`Format.js` is presentation helpers. All three are `.pragma library` scripts
-with no QML dependencies, which is why `tests/run-tests.qml` can exercise them
-directly — 112 assertions against the exact code that ships, in the exact
-engine it ships on.
+The dependency graph is a straight line: `Http.js` knows about HTTP and
+nothing else, `Contract.js` owns the one item shape every forge collapses into,
+each provider turns its own JSON into that shape, and `Forge.js` picks the
+provider for an account. `Engine.qml` talks only to `Forge.js`, so **adding a
+fourth forge is a new module plus a row in `PROVIDERS`** — not a change to the
+engine, the badge arithmetic or either frontend.
+
+Everything under `code/` is a `.pragma library` script with no QML
+dependencies, which is why `tests/run-tests.qml` can exercise it directly —
+286 assertions against the exact code that ships, in the exact engine it ships
+on.
+
+### What the tests actually verify
+
+`tests/ApiSamples.js` holds recorded API payloads, and the provider tests run
+the normalisers over them. This matters because the rest of the suite only
+proves the providers are self-consistent — it cannot tell you whether a field
+is spelled the way the forge spells it.
+
+| Forge | How the samples were obtained | Verified |
+| --- | --- | --- |
+| GitHub | unchanged since 1.x, in daily use | by use |
+| GitLab | captured live from gitlab.com's public endpoints | pipelines, projects, languages, the event feed and `calendar.json` |
+| Codeberg / Forgejo | built field-for-field from Gitea's published swagger, which Forgejo shares | every endpoint path, every query parameter, every field read |
+
+Not verified: the authenticated endpoints on GitLab and Codeberg — todos,
+notifications, the issue search and the account's own identity call. Those need
+a real token against a real server, which no test in this repository has. If
+you hit something there, it is worth an issue.
+
+### Both frontends are rendered in CI
+
+`make test` runs four things: the unit suite (286 assertions), an engine smoke test that proves
+the bindings evaluate and the timers stay off when they should, and then
+**both** UIs rendered offscreen through every tab and state. Any `TypeError`,
+`ReferenceError` or layout recursion fails the build.
+
+The Plasma run uses the stand-in Kirigami and PlasmaComponents in
+`tests/stubs/` (see its README), so it works on a machine with no Plasma
+installed. `make shots` writes a PNG per tab for both frontends into `build/shots`
+(`gitpulse-plasma-*.png` and `gitpulse-hyprland-*.png`) — handy for a pull
+request, and for spotting a layout that collapsed without opening a session.
 
 ## Licence
 

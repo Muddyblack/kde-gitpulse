@@ -7,7 +7,7 @@ import org.kde.plasma.plasmoid
 
 import "../code/Contract.js" as Contract
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Forge.js" as Forge
 
 ColumnLayout {
     id: drawer
@@ -35,6 +35,17 @@ ColumnLayout {
 
     readonly property bool isNotification: drawer.item.kind === Contract.KIND.NOTIFICATION
     readonly property bool isRun: drawer.item.kind === Contract.KIND.RUN
+    /**
+     * What this item's forge can actually do.
+     *
+     * Forgejo has no API to re-run a workflow and no per-thread subscription;
+     * offering the buttons anyway would make them look broken rather than
+     * absent.
+     */
+    readonly property var caps: Forge.capabilities({
+        provider: drawer.item.provider
+    })
+
     readonly property int runPull: drawer.isRun && drawer.item.pullNumber ? drawer.item.pullNumber : 0
 
     spacing: Kirigami.Units.smallSpacing
@@ -105,7 +116,7 @@ ColumnLayout {
                 }
 
                 PlasmaComponents.Button {
-                    visible: drawer.isNotification
+                    visible: drawer.isNotification && drawer.caps.unsubscribe
                     icon.name: "notifications-disabled"
                     text: i18n("Unsubscribe")
                     onClicked: {
@@ -123,7 +134,7 @@ ColumnLayout {
                     icon.name: "vcs-merge-request"
                     text: i18n("Pull request #%1", drawer.runPull)
                     onClicked: {
-                        drawer.openUrlRequested(GH.pullUrl(drawer.item.repo, drawer.runPull));
+                        drawer.openUrlRequested(Forge.itemPullUrl(drawer.item));
                         drawer.done();
                     }
 
@@ -133,7 +144,7 @@ ColumnLayout {
                 }
 
                 PlasmaComponents.Button {
-                    visible: drawer.isRun
+                    visible: drawer.isRun && drawer.caps.rerun
                     icon.name: "view-refresh"
                     text: i18n("Re-run")
                     onClicked: {
@@ -146,7 +157,7 @@ ColumnLayout {
                     icon.name: "folder-git"
                     text: i18n("Repository")
                     onClicked: {
-                        drawer.openUrlRequested(GH.repoUrl(drawer.item.repo));
+                        drawer.openUrlRequested(Forge.itemRepoUrl(drawer.item));
                         drawer.done();
                     }
                 }
@@ -207,7 +218,7 @@ ColumnLayout {
             });
         d.push({
             key: i18n("updated"),
-            value: i18n("%1 ago", Fmt.relative(drawer.item.updatedAt))
+            value: Fmt.since(drawer.item.updatedAt)
         });
         if (drawer.item.duplicate)
             d.push({

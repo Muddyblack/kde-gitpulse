@@ -1,0 +1,6 @@
+module org.kde.plasma.extras
+Heading 1.0 Heading.qml
+PlaceholderMessage 1.0 PlaceholderMessage.qml
+PlasmoidHeading 1.0 PlasmoidHeading.qml
+Representation 1.0 Representation.qml
+SearchField 1.0 SearchField.qml

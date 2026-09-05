@@ -7,6 +7,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import "../package/contents/ui/shared" as Shared
+import "../package/contents/code/Forge.js" as Forge
 import "../package/contents/code/Format.js" as Format
 import "Icons.js" as Glyphs
 
@@ -27,6 +28,7 @@ Rectangle {
     readonly property QuickshellIconAdapter iconAdapter: QuickshellIconAdapter {}
     readonly property bool unread: row.item.unread === true
     readonly property bool running: row.item.running === true
+    readonly property bool hasDiff: row.item.additions !== null && row.item.additions !== undefined && row.item.deletions !== null && row.item.deletions !== undefined
     readonly property bool showActions: hover.hovered || row.selected || row.expanded
     readonly property int pad: row.theme.spacing
 
@@ -149,6 +151,11 @@ Rectangle {
         // ── body ────────────────────────────────────────────────────────────
         ColumnLayout {
             Layout.fillWidth: true
+            // Whatever the meta line below ends up carrying, this column is the
+            // part that gives way. Without a floor of zero its children set the
+            // row's minimum width, and a wide diff badge pushes the time and the
+            // hover verbs off the right edge instead of the subtitle eliding.
+            Layout.minimumWidth: 0
             spacing: 4
 
             Text {
@@ -172,7 +179,7 @@ Rectangle {
                     font.pixelSize: 11
                     font.family: "monospace"
                     elide: Text.ElideMiddle
-                    Layout.maximumWidth: Math.max(60, layout.width * 0.62)
+                    Layout.maximumWidth: Math.max(60, layout.width * (row.hasDiff ? 0.5 : 0.62))
                 }
 
                 Shared.Pill {
@@ -182,6 +189,12 @@ Rectangle {
                     iconName: Glyphs.forItem(row.item)
                     spinning: row.running
                     iconDelegate: row.iconAdapter.delegate
+                }
+
+                Shared.DiffStat {
+                    theme: row.theme
+                    additions: row.item.additions
+                    deletions: row.item.deletions
                 }
 
                 Item {
@@ -248,9 +261,14 @@ Rectangle {
         return t;
     }
 
-    /** "muddyblack/nixos-config · main" */
+    /** "GL · muddyblack/nixos-config · main" */
     readonly property string subtitle: {
-        var bits = [row.item.repo];
+        var bits = [];
+        // Which forge this came from. Absent with one account configured,
+        // because then it is not telling you anything.
+        if (row.engine && row.engine.liveAccounts.length > 1)
+            bits.push(Forge.shortName(row.item.provider));
+        bits.push(row.item.repo);
         // For a run the branch says more than the run number, and both plus a
         // long repo name elides the repo away to nothing.
         if (row.item.kind === "run")

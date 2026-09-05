@@ -148,7 +148,7 @@ QC.ScrollView {
 
                     Text {
                         Layout.fillWidth: true
-                        text: qsTr("%1 · %2 ago").arg(Format.humanise(card.modelData.status || "")).arg(Format.relative(card.modelData.updated_at))
+                        text: Format.humanise(card.modelData.status || "") + " · " + Format.since(card.modelData.updated_at)
                         color: pane.theme.textDim
                         font.pixelSize: 10
                         font.family: "monospace"

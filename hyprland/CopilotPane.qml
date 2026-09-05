@@ -8,7 +8,7 @@ import QtQuick.Controls.Basic as QC
 import QtQuick.Layouts
 
 import "../package/contents/code/Format.js" as Format
-import "../package/contents/code/GitHub.js" as GH
+import "../package/contents/code/Http.js" as Http
 
 QC.ScrollView {
     id: pane
@@ -164,7 +164,7 @@ QC.ScrollView {
         Text {
             visible: pane.usage === null
             Layout.fillWidth: true
-            text: pane.engine.primaryError === GH.ERR.NO_TOKEN ? qsTr("Add a GitHub token to see billed Copilot usage.") : (pane.engine.errorFor("copilot") === GH.ERR.FORBIDDEN || pane.engine.errorFor("copilot") === GH.ERR.NOT_FOUND) ? qsTr("GitHub does not expose per-user Copilot statistics. Billed usage needs a fine-grained token with the “Plan” read permission; completion and acceptance figures exist only for organisation admins.") : qsTr("No Copilot charges recorded this month.")
+            text: pane.engine.primaryError === Http.ERR.NO_TOKEN ? qsTr("Add a GitHub token to see billed Copilot usage.") : (pane.engine.errorFor("copilot") === Http.ERR.FORBIDDEN || pane.engine.errorFor("copilot") === Http.ERR.NOT_FOUND) ? qsTr("GitHub does not expose per-user Copilot statistics. Billed usage needs a fine-grained token with the “Plan” read permission; completion and acceptance figures exist only for organisation admins.") : qsTr("No Copilot charges recorded this month.")
             color: pane.theme.textDim
             font.pixelSize: 11
             wrapMode: Text.Wrap

@@ -104,7 +104,7 @@ Rectangle {
             }
 
             PlasmaComponents.Label {
-                text: i18n("%1 ago", Fmt.relative(card.incident.updated_at))
+                text: Fmt.since(card.incident.updated_at)
                 font: Kirigami.Theme.smallFont
                 color: Kirigami.Theme.disabledTextColor
                 Layout.fillWidth: true
@@ -133,7 +133,7 @@ Rectangle {
                 Layout.topMargin: Kirigami.Units.smallSpacing
 
                 PlasmaComponents.Label {
-                    text: i18nc("incident update state and age", "%1 · %2 ago", Fmt.humanise(parent.modelData.status || ""), Fmt.relative(parent.modelData.updated_at))
+                    text: Fmt.humanise(parent.modelData.status || "") + " · " + Fmt.since(parent.modelData.updated_at)
                     font.family: "monospace"
                     font.pixelSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.9)
                     color: Kirigami.Theme.disabledTextColor

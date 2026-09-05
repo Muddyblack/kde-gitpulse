@@ -14,6 +14,18 @@ QML_MODULES := $(if $(QMLRUN),$(abspath $(dir $(QMLRUN))/../lib/qt-6/qml))
 TEST_ENV := QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
             QML2_IMPORT_PATH=$(QML_MODULES) QML_IMPORT_PATH=$(QML_MODULES)
 
+# The Plasma UI test renders the real popup against the stand-in Kirigami and
+# PlasmaComponents in tests/stubs — see tests/stubs/README.md. The stub path
+# comes first deliberately: the run must be identical on a machine with Plasma
+# installed and on one without.
+STUBS     := $(abspath tests/stubs)
+PLASMA_ENV := QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
+              QML2_IMPORT_PATH=$(STUBS):$(QML_MODULES) QML_IMPORT_PATH=$(STUBS):$(QML_MODULES)
+
+# Anything QML complains about fails the build. Both smoke tests are greped for
+# the same vocabulary, so a binding error cannot pass on either frontend.
+QML_ERRORS := TypeError|ReferenceError|Unable to assign|is not defined|unavailable|recursive rearrange
+
 help: ## list targets
 	@awk 'BEGIN{FS=":.*##"} /^[a-z][a-zA-Z0-9_-]+:.*##/ {printf "  make %-10s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -45,21 +57,34 @@ test: ## run the shared-core unit tests (needs the `qml` runtime)
 	@# on systemd distributions and the run looks silent but passing.
 	@$(TEST_ENV) $(QMLRUN) tests/run-tests.qml
 	@$(TEST_ENV) $(QMLRUN) tests/engine-smoke.qml
-	@# Renders the whole Quickshell UI offscreen. Nothing may print a binding
-	@# error, and the run must reach its own "rendered everything" line.
+	@# Renders both whole UIs offscreen. Nothing may print a binding error, and
+	@# each run must reach its own "rendered everything" line.
 	@out="$$($(TEST_ENV) $(QMLRUN) tests/hyprland-smoke.qml 2>&1)"; \
 	 echo "$$out" | sort -u; \
-	 if echo "$$out" | grep -qE "TypeError|ReferenceError|Unable to assign|is not defined|unavailable"; then \
+	 if echo "$$out" | grep -qE "$(QML_ERRORS)"; then \
 	   echo "  ✗ hyprland-smoke: QML reported binding errors"; exit 1; \
 	 fi; \
 	 if ! echo "$$out" | grep -q "rendered every tab"; then \
 	   echo "  ✗ hyprland-smoke: did not finish"; exit 1; \
 	 fi; \
 	 echo "  ✓ hyprland-smoke: every tab and state rendered clean"
+	@out="$$($(PLASMA_ENV) $(QMLRUN) tests/plasma-smoke.qml 2>&1)"; \
+	 echo "$$out" | sort -u; \
+	 if echo "$$out" | grep -qE "$(QML_ERRORS)"; then \
+	   echo "  ✗ plasma-smoke: QML reported binding errors"; exit 1; \
+	 fi; \
+	 if ! echo "$$out" | grep -q "rendered every tab"; then \
+	   echo "  ✗ plasma-smoke: did not finish"; exit 1; \
+	 fi; \
+	 echo "  ✓ plasma-smoke: every tab and state rendered clean"
 
-shots: ## render the Quickshell UI to PNGs in ./build/shots (needs the `qml` runtime)
+shots: ## render both UIs to PNGs in ./build/shots (needs the `qml` runtime)
 	@mkdir -p build/shots
+	@# Clear first: a shot whose name changed, or one whose render failed, otherwise
+	@# survives as a stale PNG that reads as current output.
+	@rm -f build/shots/*.png
 	@$(TEST_ENV) $(QMLRUN) tests/hyprland-smoke.qml -- --shot "$(PWD)/build/shots" >/dev/null 2>&1
+	@$(PLASMA_ENV) $(QMLRUN) tests/plasma-smoke.qml -- --shot "$(PWD)/build/shots" >/dev/null 2>&1
 	@ls build/shots
 
 lint: ## qmllint every QML file

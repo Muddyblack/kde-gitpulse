@@ -9,7 +9,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 ColumnLayout {
     id: tip
@@ -47,13 +47,13 @@ ColumnLayout {
                 color: Kirigami.Theme.disabledTextColor
                 text: {
                     switch (tip.engine.primaryError) {
-                    case GH.ERR.NO_TOKEN:
+                    case Http.ERR.NO_TOKEN:
                         return i18n("Not configured yet");
-                    case GH.ERR.AUTH:
+                    case Http.ERR.AUTH:
                         return i18n("Token rejected — reconfigure");
-                    case GH.ERR.RATE_LIMIT:
+                    case Http.ERR.RATE_LIMIT:
                         return i18n("Rate limited");
-                    case GH.ERR.OFFLINE:
+                    case Http.ERR.OFFLINE:
                         return i18n("Offline");
                     default:
                         return tip.b.needsYou > 0 ? i18np("%1 item needs you", "%1 items need you", tip.b.needsYou) : i18n("Nothing needs you");
@@ -116,6 +116,6 @@ ColumnLayout {
         Layout.topMargin: Kirigami.Units.smallSpacing
         font: Kirigami.Theme.smallFont
         color: Kirigami.Theme.disabledTextColor
-        text: tip.engine.lastUpdateMs > 0 ? i18n("Updated %1 ago", Fmt.relative(new Date(tip.engine.lastUpdateMs).toISOString())) : i18n("Never updated")
+        text: tip.engine.lastUpdateMs > 0 ? i18n("Updated %1", Fmt.since(new Date(tip.engine.lastUpdateMs).toISOString())) : i18n("Never updated")
     }
 }

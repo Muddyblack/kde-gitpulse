@@ -7,7 +7,7 @@ import QtQuick
 import org.kde.kirigami as Kirigami
 
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 Kirigami.InlineMessage {
     id: banner
@@ -33,11 +33,11 @@ Kirigami.InlineMessage {
 
     type: {
         switch (banner.engine.primaryError) {
-        case GH.ERR.AUTH:
-        case GH.ERR.RATE_LIMIT:
+        case Http.ERR.AUTH:
+        case Http.ERR.RATE_LIMIT:
             return Kirigami.MessageType.Error;
-        case GH.ERR.OFFLINE:
-        case GH.ERR.NO_TOKEN:
+        case Http.ERR.OFFLINE:
+        case Http.ERR.NO_TOKEN:
             return Kirigami.MessageType.Warning;
         default:
             return banner.outages > 0 ? Kirigami.MessageType.Warning : Kirigami.MessageType.Information;
@@ -46,13 +46,13 @@ Kirigami.InlineMessage {
 
     text: {
         switch (banner.engine.primaryError) {
-        case GH.ERR.NO_TOKEN:
+        case Http.ERR.NO_TOKEN:
             return i18n("Add a GitHub token to start syncing.");
-        case GH.ERR.AUTH:
+        case Http.ERR.AUTH:
             return i18n("GitHub rejected the token. It may have expired or been revoked.");
-        case GH.ERR.RATE_LIMIT:
+        case Http.ERR.RATE_LIMIT:
             return banner.resetInSec > 0 ? i18n("Rate limit reached. Polling resumes in %1.", Fmt.until(banner.resetInSec)) : i18n("Rate limit reached. Polling is paused.");
-        case GH.ERR.OFFLINE:
+        case Http.ERR.OFFLINE:
             return i18n("Offline — showing the last data received.");
         }
         if (banner.outages > 0)
@@ -64,13 +64,13 @@ Kirigami.InlineMessage {
         Kirigami.Action {
             text: i18n("Configure…")
             icon.name: "configure"
-            visible: banner.engine.primaryError === GH.ERR.NO_TOKEN || banner.engine.primaryError === GH.ERR.AUTH
+            visible: banner.engine.primaryError === Http.ERR.NO_TOKEN || banner.engine.primaryError === Http.ERR.AUTH
             onTriggered: banner.configure()
         },
         Kirigami.Action {
             text: i18n("Retry")
             icon.name: "view-refresh"
-            visible: banner.engine.primaryError === GH.ERR.OFFLINE
+            visible: banner.engine.primaryError === Http.ERR.OFFLINE
             onTriggered: banner.engine.refreshAll(false)
         }
     ]
@@ -79,7 +79,7 @@ Kirigami.InlineMessage {
     Timer {
         interval: 1000
         repeat: true
-        running: banner.visible && banner.engine.primaryError === GH.ERR.RATE_LIMIT
+        running: banner.visible && banner.engine.primaryError === Http.ERR.RATE_LIMIT
         onTriggered: banner.tick++
     }
 }

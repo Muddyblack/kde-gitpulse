@@ -8,7 +8,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 PlasmaExtras.PlasmoidHeading {
     id: header
@@ -116,13 +116,13 @@ PlasmaExtras.PlasmoidHeading {
 
     readonly property string summary: {
         switch (header.engine.primaryError) {
-        case GH.ERR.NO_TOKEN:
+        case Http.ERR.NO_TOKEN:
             return i18n("Not configured");
-        case GH.ERR.AUTH:
+        case Http.ERR.AUTH:
             return i18n("Token rejected");
-        case GH.ERR.RATE_LIMIT:
+        case Http.ERR.RATE_LIMIT:
             return i18n("Rate limited");
-        case GH.ERR.OFFLINE:
+        case Http.ERR.OFFLINE:
             return i18n("Offline");
         }
         var b = header.engine.badge;

@@ -7,7 +7,8 @@ import QtQuick.Controls.Basic as QC
 import QtQuick.Dialogs
 import QtQuick.Layouts
 
-import "../package/contents/code/GitHub.js" as GH
+import "../package/contents/code/Forge.js" as Forge
+import "../package/contents/code/Http.js" as Http
 
 QC.ScrollView {
     id: page
@@ -19,23 +20,134 @@ QC.ScrollView {
 
     signal closed
 
-    property string checkState: ""
-    property string checkDetail: ""
+    readonly property var providerIds: Forge.PROVIDERS.map(p => p.id)
+    /** True once the model has been filled, so loading does not look like editing. */
+    property bool loaded: false
 
     readonly property var swatches: ["#3daee9", "#9b59b6", "#27ae60", "#f67400", "#da4453", "#e93a9a", "#16a085", "#7aa2f7"]
 
-    function verify() {
-        if (page.settings.token === "")
+    ListModel {
+        id: accounts
+    }
+
+    function load() {
+        accounts.clear();
+        Forge.parse(page.settings.accounts).forEach(function (a) {
+            accounts.append({
+                accountId: a.id,
+                provider: a.provider,
+                host: a.host,
+                token: a.token,
+                graphqlToken: a.graphqlToken,
+                label: a.label,
+                useCli: a.useCli,
+                accountEnabled: a.enabled,
+                checkState: "",
+                checkDetail: ""
+            });
+        });
+        page.loaded = true;
+    }
+
+    function save() {
+        if (!page.loaded)
             return;
-        page.checkState = "checking";
-        GH.viewer(page.settings.token, function (res) {
-            page.checkState = res.ok ? "ok" : "bad";
-            page.checkDetail = res.ok && res.data ? res.data.login : (res.message || res.error);
+        var out = [];
+        for (var i = 0; i < accounts.count; i++) {
+            var r = accounts.get(i);
+            out.push({
+                id: r.accountId,
+                provider: r.provider,
+                host: r.host,
+                token: r.token,
+                graphqlToken: r.graphqlToken,
+                label: r.label,
+                useCli: r.useCli,
+                enabled: r.accountEnabled
+            });
+        }
+        page.settings.accounts = JSON.stringify(out);
+    }
+
+    function set(index, key, value) {
+        accounts.setProperty(index, key, value);
+        if (key !== "checkState" && key !== "checkDetail")
+            page.save();
+    }
+
+    function addAccount(providerId) {
+        var a = Forge.blank(providerId);
+        accounts.append({
+            accountId: a.id,
+            provider: a.provider,
+            host: "",
+            token: "",
+            graphqlToken: "",
+            label: "",
+            useCli: false,
+            accountEnabled: true,
+            checkState: "",
+            checkDetail: ""
+        });
+        page.save();
+    }
+
+    /** Ask the forge who this token belongs to, and say so plainly. */
+    function verify(index) {
+        var r = accounts.get(index);
+        if (r.token === "")
+            return;
+        page.set(index, "checkState", "checking");
+        var acct = Forge.normalise({
+            id: r.accountId,
+            provider: r.provider,
+            host: r.host,
+            token: r.token
+        });
+        Forge.viewer(acct, function (res) {
+            page.set(index, "checkState", res.ok ? "ok" : "bad");
+            page.set(index, "checkDetail", res.ok && res.data ? res.data.login : res.error === Http.ERR.OFFLINE ? qsTr("Could not reach %1").arg(acct.host) : (res.message || res.error));
         });
     }
 
+    Component.onCompleted: page.load()
+
     contentWidth: availableWidth
     clip: true
+
+    component Field: Rectangle {
+        id: field
+
+        property string value: ""
+        property string placeholder: ""
+        property bool secret: false
+
+        signal edited(string value)
+
+        implicitHeight: 30
+        radius: page.theme.radiusSmall
+        color: Qt.rgba(0, 0, 0, 0.25)
+        border.width: 1
+        border.color: input.activeFocus ? page.theme.accent : page.theme.line
+
+        QC.TextField {
+            id: input
+
+            anchors.fill: parent
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            // Bound one way only: writing back on every keystroke would fight
+            // the model update and drop characters.
+            text: field.value
+            echoMode: field.secret ? TextInput.Password : TextInput.Normal
+            placeholderText: field.placeholder
+            color: page.theme.text
+            placeholderTextColor: page.theme.textFaint
+            font.pixelSize: 12
+            background: null
+            onTextEdited: field.edited(text)
+        }
+    }
 
     component Caption: Text {
         color: page.theme.textFaint
@@ -118,103 +230,191 @@ QC.ScrollView {
             }
         }
 
-        // ══ credentials ═════════════════════════════════════════════════════
-        Toggle {
-            Layout.fillWidth: true
-            text: qsTr("Use the GitHub CLI's token (gh auth token)")
-            checked: page.settings.useGhCli
-            onToggled: v => page.settings.useGhCli = v
-        }
-
+        // ══ accounts ════════════════════════════════════════════════════════
+        //
+        // The same JSON the Plasma side writes, edited through a ListModel so
+        // a keystroke does not rebuild — and unfocus — the field being typed
+        // into.
         Caption {
             Layout.fillWidth: true
-            visible: page.settings.useGhCli
-            text: page.ghState === "ok" ? qsTr("Borrowed the token gh already stores. Nothing new was created.") : page.ghState === "missing" ? qsTr("gh is not on PATH — install the GitHub CLI, or paste a token instead.") : page.ghState === "unauthenticated" ? qsTr("gh is installed but returned no token — run “gh auth login”.") : qsTr("Asking gh for its token…")
-            color: page.ghState === "ok" ? page.theme.positive : (page.ghState === "missing" || page.ghState === "unauthenticated") ? page.theme.negative : page.theme.textFaint
+            visible: accounts.count === 0
+            text: qsTr("Not signed in anywhere yet. Add a GitHub, GitLab or Codeberg account — you can add several, and the inbox merges them.")
         }
 
-        Caption {
-            Layout.fillWidth: true
-            visible: !page.settings.useGhCli
-            text: qsTr("GitHub token — read-only scopes: notifications, repo, read:org, read:user")
-        }
+        Repeater {
+            model: accounts
 
-        RowLayout {
-            visible: !page.settings.useGhCli
-            Layout.fillWidth: true
-            spacing: page.theme.spacingSmall
+            delegate: Rectangle {
+                id: card
 
-            Rectangle {
+                required property int index
+                required property string accountId
+                required property string provider
+                required property string host
+                required property string token
+                required property string graphqlToken
+                required property string label
+                required property bool useCli
+                required property bool accountEnabled
+                required property string checkState
+                required property string checkDetail
+
+                readonly property var descriptor: Forge.descriptor(card.provider)
+
                 Layout.fillWidth: true
-                implicitHeight: 30
+                implicitHeight: cardBody.implicitHeight + page.theme.spacing * 2
                 radius: page.theme.radiusSmall
-                color: Qt.rgba(0, 0, 0, 0.25)
+                color: page.theme.surfaceAlt
                 border.width: 1
-                border.color: tokenField.activeFocus ? page.theme.accent : page.theme.line
+                border.color: page.theme.line
+                opacity: card.accountEnabled ? 1 : 0.55
 
-                QC.TextField {
-                    id: tokenField
+                ColumnLayout {
+                    id: cardBody
 
-                    anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
-                    text: page.settings.token
-                    echoMode: TextInput.Password
-                    placeholderText: "ghp_…"
-                    color: page.theme.text
-                    placeholderTextColor: page.theme.textFaint
-                    font.pixelSize: 12
-                    background: null
-                    onTextChanged: {
-                        page.checkState = "";
-                        page.settings.token = text;
+                    x: page.theme.spacing
+                    y: page.theme.spacing
+                    width: card.width - page.theme.spacing * 2
+                    spacing: page.theme.spacingSmall
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: page.theme.spacingSmall
+
+                        // A three-way cycle rather than a combo box: Basic
+                        // controls have no styled popup, and three forges do
+                        // not need one.
+                        ActionButton {
+                            theme: page.theme
+                            text: card.descriptor.label
+                            primary: true
+                            onClicked: {
+                                var i = page.providerIds.indexOf(card.provider);
+                                var next = page.providerIds[(i + 1) % page.providerIds.length];
+                                page.set(card.index, "host", "");
+                                page.set(card.index, "provider", next);
+                                page.set(card.index, "checkState", "");
+                            }
+                        }
+
+                        Field {
+                            Layout.fillWidth: true
+                            value: card.label
+                            placeholder: qsTr("Name (optional)")
+                            onEdited: v => page.set(card.index, "label", v)
+                        }
+
+                        ActionButton {
+                            theme: page.theme
+                            iconName: card.accountEnabled ? "eye" : "eye-off"
+                            text: card.accountEnabled ? qsTr("Pause") : qsTr("Resume")
+                            onClicked: page.set(card.index, "accountEnabled", !card.accountEnabled)
+                        }
+
+                        ActionButton {
+                            theme: page.theme
+                            iconName: "x"
+                            text: qsTr("Remove")
+                            onClicked: {
+                                accounts.remove(card.index);
+                                page.save();
+                            }
+                        }
+                    }
+
+                    Field {
+                        Layout.fillWidth: true
+                        value: card.host === card.descriptor.defaultHost ? "" : card.host
+                        placeholder: card.descriptor.defaultHost
+                        onEdited: v => {
+                            page.set(card.index, "host", v.trim());
+                            page.set(card.index, "checkState", "");
+                        }
+                    }
+
+                    Toggle {
+                        Layout.fillWidth: true
+                        visible: card.descriptor.cli !== ""
+                        text: qsTr("Borrow the GitHub CLI's token (gh auth token)")
+                        checked: card.useCli
+                        onToggled: v => page.set(card.index, "useCli", v)
+                    }
+
+                    Caption {
+                        Layout.fillWidth: true
+                        visible: card.useCli
+                        text: page.ghState === "ok" ? qsTr("Borrowed the token gh already stores. Nothing new was created.") : page.ghState === "missing" ? qsTr("gh is not on PATH — install the GitHub CLI, or paste a token instead.") : page.ghState === "unauthenticated" ? qsTr("gh is installed but returned no token — run “gh auth login”.") : qsTr("Asking gh for its token…")
+                        color: page.ghState === "ok" ? page.theme.positive : (page.ghState === "missing" || page.ghState === "unauthenticated") ? page.theme.negative : page.theme.textFaint
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: !card.useCli
+                        spacing: page.theme.spacingSmall
+
+                        Field {
+                            Layout.fillWidth: true
+                            value: card.token
+                            secret: true
+                            placeholder: card.descriptor.tokenPlaceholder
+                            onEdited: v => {
+                                page.set(card.index, "token", v);
+                                page.set(card.index, "checkState", "");
+                            }
+                        }
+
+                        ActionButton {
+                            theme: page.theme
+                            iconName: "refresh"
+                            text: qsTr("Check")
+                            onClicked: page.verify(card.index)
+                        }
+                    }
+
+                    Caption {
+                        Layout.fillWidth: true
+                        visible: card.checkState === "ok" || card.checkState === "bad"
+                        text: card.checkState === "ok" ? qsTr("Signed in as %1").arg(card.checkDetail) : card.checkDetail
+                        color: card.checkState === "ok" ? page.theme.positive : page.theme.negative
+                    }
+
+                    Caption {
+                        Layout.fillWidth: true
+                        visible: !card.useCli
+                        text: qsTr("Read-only scopes: %1").arg(card.descriptor.scopes)
+                    }
+
+                    Field {
+                        Layout.fillWidth: true
+                        visible: card.provider === "github" && !card.useCli
+                        value: card.graphqlToken
+                        secret: true
+                        placeholder: qsTr("Profile token (optional) — classic, read:user")
+                        onEdited: v => page.set(card.index, "graphqlToken", v)
                     }
                 }
             }
+        }
 
-            ActionButton {
-                theme: page.theme
-                iconName: "refresh"
-                text: qsTr("Check")
-                onClicked: page.verify()
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: page.theme.spacingSmall
+
+            Repeater {
+                model: page.providerIds
+
+                delegate: ActionButton {
+                    required property string modelData
+
+                    theme: page.theme
+                    iconName: "plus"
+                    text: qsTr("Add %1").arg(Forge.descriptor(modelData).label)
+                    onClicked: page.addAccount(modelData)
+                }
             }
-        }
 
-        Caption {
-            Layout.fillWidth: true
-            visible: page.checkState === "ok" || page.checkState === "bad"
-            text: page.checkState === "ok" ? qsTr("Signed in as %1").arg(page.checkDetail) : page.checkDetail
-            color: page.checkState === "ok" ? page.theme.positive : page.theme.negative
-        }
-
-        // ══ graphql token ═══════════════════════════════════════════════════
-        Caption {
-            Layout.fillWidth: true
-            text: qsTr("Profile token (optional) — a classic token with read:user. Only needed if the Profile tab reports that GraphQL was refused; fine-grained tokens often are.")
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: 30
-            radius: page.theme.radiusSmall
-            color: Qt.rgba(0, 0, 0, 0.25)
-            border.width: 1
-            border.color: graphField.activeFocus ? page.theme.accent : page.theme.line
-
-            QC.TextField {
-                id: graphField
-
-                anchors.fill: parent
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
-                text: page.settings.graphqlToken
-                echoMode: TextInput.Password
-                placeholderText: qsTr("leave empty to reuse the token above")
-                color: page.theme.text
-                placeholderTextColor: page.theme.textFaint
-                font.pixelSize: 12
-                background: null
-                onTextChanged: page.settings.graphqlToken = text
+            Item {
+                Layout.fillWidth: true
             }
         }
 

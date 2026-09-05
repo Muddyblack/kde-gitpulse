@@ -26,11 +26,38 @@ Rectangle {
     property string iconName: ""
     property bool spinning: false
     property Component iconDelegate: null
+    /** Solid tone instead of a wash — for "this one is selected". */
+    property bool filled: false
+    /** Makes the pill a button: hover feedback, pointer cursor, clicked(). */
+    property bool interactive: false
+
+    signal clicked
 
     implicitWidth: row.implicitWidth + 14
     implicitHeight: Math.round(pill.theme.smallFontSize * 1.8)
     radius: height / 2
-    color: pill.theme.wash(pill.tone, 0.16)
+    color: pill.filled ? pill.theme.of(pill.tone) : pill.theme.wash(pill.tone, pill.interactive && tap.hovered ? 0.28 : 0.16)
+
+    readonly property color inkColor: pill.filled ? pill.theme.accentText : pill.theme.of(pill.tone)
+
+    Behavior on color {
+        enabled: pill.interactive
+        ColorAnimation {
+            duration: pill.theme.shortDuration
+        }
+    }
+
+    HoverHandler {
+        id: tap
+
+        enabled: pill.interactive
+        cursorShape: Qt.PointingHandCursor
+    }
+
+    TapHandler {
+        enabled: pill.interactive
+        onTapped: pill.clicked()
+    }
 
     Row {
         id: row
@@ -56,7 +83,7 @@ Rectangle {
         Binding {
             target: iconLoader.item
             property: "color"
-            value: pill.theme.of(pill.tone)
+            value: pill.inkColor
             when: iconLoader.item !== null
         }
         Binding {
@@ -69,7 +96,7 @@ Rectangle {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: pill.text
-            color: pill.theme.of(pill.tone)
+            color: pill.inkColor
             font.pixelSize: pill.theme.smallFontSize
             font.weight: Font.DemiBold
         }

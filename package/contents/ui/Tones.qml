@@ -20,8 +20,20 @@ QtObject {
     // hyprland/Theme.qml's shape, so this doubles as the `theme` object every
     // package/contents/ui/shared/*.qml component expects — one interface,
     // two implementations, instead of the components themselves forking.
+    readonly property color text: Kirigami.Theme.textColor
     readonly property color textDim: Kirigami.Theme.disabledTextColor
     readonly property color textFaint: Qt.rgba(Kirigami.Theme.disabledTextColor.r, Kirigami.Theme.disabledTextColor.g, Kirigami.Theme.disabledTextColor.b, 0.7)
+    readonly property color line: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+    readonly property color surface: Kirigami.Theme.backgroundColor
+    /**
+     * The unfilled part of a bar, ring or heatmap cell.
+     *
+     * Derived from the text colour rather than being a hardcoded white wash —
+     * the shared components used to paint rgba(1,1,1,0.07), which is invisible
+     * on every light Plasma colour scheme.
+     */
+    readonly property color track: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.08)
+    readonly property int radiusSmall: Kirigami.Units.cornerRadius
     readonly property int spacing: Kirigami.Units.smallSpacing
     readonly property int spacingSmall: Math.round(Kirigami.Units.smallSpacing / 2)
     readonly property int shortDuration: Kirigami.Units.shortDuration

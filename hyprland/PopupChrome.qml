@@ -6,7 +6,7 @@ import QtQuick.Layouts
 
 import "../package/contents/code/Contract.js" as Contract
 import "../package/contents/code/Format.js" as Format
-import "../package/contents/code/GitHub.js" as GH
+import "../package/contents/code/Http.js" as Http
 import "Icons.js" as Glyphs
 
 Item {
@@ -434,7 +434,7 @@ Item {
                 implicitWidth: 7
                 implicitHeight: 7
                 radius: 3.5
-                color: chrome.engine.primaryError === "" ? chrome.theme.positive : chrome.engine.primaryError === GH.ERR.OFFLINE ? chrome.theme.negative : chrome.theme.neutral
+                color: chrome.engine.primaryError === "" ? chrome.theme.positive : chrome.engine.primaryError === Http.ERR.OFFLINE ? chrome.theme.negative : chrome.theme.neutral
             }
 
             Text {
@@ -599,13 +599,13 @@ Item {
     readonly property string subtitle: {
         var accentHex = chrome.theme.accent.toString();
         switch (chrome.engine.primaryError) {
-        case GH.ERR.NO_TOKEN:
+        case Http.ERR.NO_TOKEN:
             return qsTr("not configured");
-        case GH.ERR.AUTH:
+        case Http.ERR.AUTH:
             return qsTr("token rejected");
-        case GH.ERR.RATE_LIMIT:
+        case Http.ERR.RATE_LIMIT:
             return qsTr("rate limited");
-        case GH.ERR.OFFLINE:
+        case Http.ERR.OFFLINE:
             return qsTr("offline");
         }
         var b = chrome.engine.badge;
@@ -618,15 +618,15 @@ Item {
     }
 
     readonly property string freshness: {
-        if (chrome.engine.primaryError === GH.ERR.NO_TOKEN)
+        if (chrome.engine.primaryError === Http.ERR.NO_TOKEN)
             return qsTr("not configured");
         if (chrome.engine.lastUpdateMs === 0)
             return qsTr("waiting for first sync");
-        return qsTr("%1 ago").arg(Format.relative(new Date(chrome.engine.lastUpdateMs).toISOString()));
+        return Format.since(new Date(chrome.engine.lastUpdateMs).toISOString());
     }
 
     readonly property string emptyText: {
-        if (chrome.engine.primaryError === GH.ERR.NO_TOKEN)
+        if (chrome.engine.primaryError === Http.ERR.NO_TOKEN)
             return qsTr("Add a GitHub token in settings to start syncing.");
         if (!chrome.engine.everLoaded)
             return qsTr("Syncing…");

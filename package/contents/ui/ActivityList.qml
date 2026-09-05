@@ -8,7 +8,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
 import "../code/Contract.js" as Contract
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 Item {
     id: view
@@ -143,13 +143,13 @@ Item {
     readonly property var placeholder: {
         var slot = (view.tab === "pulls" || view.tab === "issues") ? "search" : view.tab;
         var err = view.engine.errorFor(slot);
-        if (view.engine.primaryError === GH.ERR.NO_TOKEN)
+        if (view.engine.primaryError === Http.ERR.NO_TOKEN)
             return {
                 icon: "network-disconnect",
                 title: i18n("Not configured"),
                 body: i18n("Add a read-only GitHub token in the widget settings.")
             };
-        if (err === GH.ERR.FORBIDDEN)
+        if (err === Http.ERR.FORBIDDEN)
             return {
                 icon: "object-locked",
                 title: i18n("Token lacks access"),

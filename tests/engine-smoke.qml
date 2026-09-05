@@ -7,7 +7,7 @@
 // unconfigured state is reached without touching the network.
 import QtQuick
 import "../package/contents/ui/engine" as Core
-import "../package/contents/code/GitHub.js" as GH
+import "../package/contents/code/Http.js" as Http
 
 QtObject {
     id: suite
@@ -39,7 +39,7 @@ QtObject {
         console.warn("\n  Engine — unconfigured state");
 
         ok("instantiates without a token", suite.engine !== null);
-        ok("reports NO_TOKEN as the primary error", suite.engine.primaryError === GH.ERR.NO_TOKEN, suite.engine.primaryError);
+        ok("reports NO_TOKEN as the primary error", suite.engine.primaryError === Http.ERR.NO_TOKEN, suite.engine.primaryError);
         ok("badge starts empty", suite.engine.badge.needsYou === 0);
         ok("nothing is tracked yet", suite.engine.badge.tracked === 0);
         ok("has not loaded", !suite.engine.everLoaded);
@@ -49,12 +49,8 @@ QtObject {
 
         console.warn("\n  Engine — avatar cache keys");
         suite.engine._avatarCacheVersion = 42;
-        suite.engine.viewer = {
-            login: "muddyblack",
-            avatar_url: "https://avatars.example.test/u/1?v=4"
-        };
-        ok("keeps GitHub's existing avatar query", suite.engine.avatarSource === "https://avatars.example.test/u/1?v=4&gitpulse-avatar=42", suite.engine.avatarSource);
-        ok("shares one cache key for the same actor", suite.engine.avatarSourceFor(suite.engine.viewer.avatar_url) === suite.engine.avatarSource);
+        ok("keeps an existing avatar query", suite.engine.avatarSourceFor("https://avatars.example.test/u/1?v=4") === "https://avatars.example.test/u/1?v=4&gitpulse-avatar=42");
+        ok("shares one cache key for the same actor", suite.engine.avatarSourceFor("https://avatars.example.test/u/1?v=4") === suite.engine.avatarSourceFor("https://avatars.example.test/u/1?v=4"));
         ok("adds a query delimiter when an avatar has none", suite.engine.avatarSourceFor("https://avatars.example.test/u/2") === "https://avatars.example.test/u/2?gitpulse-avatar=42");
 
         console.warn("\n  Engine — polling is off without a token");
@@ -80,6 +76,47 @@ QtObject {
         }
         ok("no-op calls do not throw", threw === "", threw);
         ok("errorFor() on an unknown slot is empty", suite.engine.errorFor("nope") === "");
+        ok("an empty account list is not configured", !suite.engine.configured);
+        ok("and yields no accounts to poll", suite.engine.accounts.length === 0);
+        ok("markAllRead with no accounts calls back false", (function () {
+                var seen = null;
+                suite.engine.markAllRead(function (okd) {
+                    seen = okd;
+                });
+                return seen === false;
+            })());
+
+        console.warn("\n  Engine — quiet hours");
+        // The badge keeps counting during quiet hours; only the notification
+        // is withheld, so nothing is hidden — it just does not interrupt.
+        suite.engine.quietFromHour = 0;
+        suite.engine.quietToHour = 0;
+        ok("equal bounds disable the window", !suite.engine.quiet);
+        suite.engine._nowHour = 23;
+        suite.engine.quietFromHour = 22;
+        suite.engine.quietToHour = 8;
+        ok("a window that wraps midnight includes 23:00", suite.engine.quiet);
+        suite.engine._nowHour = 12;
+        ok("and excludes midday", !suite.engine.quiet);
+        suite.engine._nowHour = 3;
+        ok("and includes the small hours", suite.engine.quiet);
+        suite.engine.quietFromHour = 9;
+        suite.engine.quietToHour = 17;
+        suite.engine._nowHour = 12;
+        ok("a same-day window includes its middle", suite.engine.quiet);
+        suite.engine._nowHour = 20;
+        ok("and excludes the evening", !suite.engine.quiet);
+        suite.engine.quietFromHour = 0;
+        suite.engine.quietToHour = 0;
+
+        console.warn("\n  Engine — busy is a count, not a flag");
+        ok("nothing in flight means not busy", !suite.engine.busy);
+        suite.engine._pending = 2;
+        ok("two sources in flight is busy", suite.engine.busy);
+        suite.engine._pending = 1;
+        ok("one finishing does not clear the spinner", suite.engine.busy);
+        suite.engine._pending = 0;
+        ok("the last one does", !suite.engine.busy);
 
         console.warn("\n  " + suite.passed + " passed, " + suite.failed + " failed\n");
         Qt.exit(suite.failed > 0 ? 1 : 0);

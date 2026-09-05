@@ -49,6 +49,20 @@ function relative(iso, now) {
     return Math.floor(d / 365) + "y";
 }
 
+/**
+ * "4m ago", "just now".
+ *
+ * `relative()` alone yields "now", and every caller pasted " ago" after it —
+ * which spelled "now ago" for anything fresher than 45 seconds, on the footer
+ * that updates every minute and therefore said it most of the time.
+ */
+function since(iso, now) {
+    var r = relative(iso, now);
+    if (r === "")
+        return "";
+    return r === "now" ? "just now" : r + " ago";
+}
+
 /** "in 4m" / "in 12s" — used for rate-limit resets and the next-poll countdown. */
 function until(seconds) {
     if (seconds === undefined || seconds === null || seconds <= 0)
@@ -67,9 +81,61 @@ function clock(date) {
     return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
 }
 
+/** "06" — a zero-padded hour, for clock ticks and bucket ranges. */
+function hourLabel(hour) {
+    return ("0" + Math.max(0, Math.min(23, hour))).slice(-2) + ":00";
+}
+
+/**
+ * The viewer's own UTC offset, spelled the way the profile card spells it:
+ * "utc+2", "utc-5:30", "utc". Everything time-of-day in Gitpulse is in local
+ * time, and saying so is the difference between a chart people trust and one
+ * they quietly assume is wrong.
+ */
+function tzLabel(at) {
+    // getTimezoneOffset() is minutes *behind* UTC, hence the negation.
+    var total = -(at || new Date()).getTimezoneOffset();
+    if (total === 0)
+        return "utc";
+    var sign = total >= 0 ? "+" : "-";
+    var hours = Math.floor(Math.abs(total) / 60);
+    var minutes = Math.abs(total) % 60;
+    return "utc" + sign + hours + (minutes ? ":" + ("0" + minutes).slice(-2) : "");
+}
+
 /** ISO date (UTC) for heatmap cell keys. */
 function isoDate(date) {
     return date.getUTCFullYear() + "-" + ("0" + (date.getUTCMonth() + 1)).slice(-2) + "-" + ("0" + date.getUTCDate()).slice(-2);
+}
+
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * "2026-04-30" → "Apr 30", or "Apr 30, 2025" when it is not this year.
+ *
+ * The streak captions sit in a third of a 432 px popup. A full ISO date does
+ * not fit there and elides to "2026-04-30 — 2026-05…", which is worse than no
+ * caption at all.
+ */
+function shortDate(iso, now) {
+    if (!iso)
+        return "";
+    var parts = String(iso).split("-");
+    if (parts.length < 3)
+        return String(iso);
+    var year = parseInt(parts[0], 10);
+    var month = parseInt(parts[1], 10) - 1;
+    var day = parseInt(parts[2], 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day) || month < 0 || month > 11)
+        return String(iso);
+    var thisYear = (now === undefined ? new Date() : new Date(now)).getFullYear();
+    return MONTHS[month] + " " + day + (year === thisYear ? "" : ", " + year);
+}
+
+/** ISO date in the viewer's own timezone, for event-derived day buckets. */
+function localDate(date) {
+    var d = date || new Date();
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
 }
 
 // ── numbers ─────────────────────────────────────────────────────────────────
@@ -94,6 +160,20 @@ function percent(part, whole) {
     if (!whole)
         return 0;
     return Math.max(0, Math.min(100, Math.round(part / whole * 100)));
+}
+
+/** "+1.4k" / "+12" — compact additions count for diff badges. */
+function diffAdditions(n) {
+    if (n === undefined || n === null || isNaN(n) || n < 0)
+        return "";
+    return "+" + compact(n);
+}
+
+/** "-200" / "-1.2k" — compact deletions count for diff badges. */
+function diffDeletions(n) {
+    if (n === undefined || n === null || isNaN(n) || n < 0)
+        return "";
+    return "-" + compact(n);
 }
 
 // ── strings ─────────────────────────────────────────────────────────────────
@@ -162,6 +242,34 @@ var REASON_ICON = {
 
 function reasonIcon(reason) {
     return REASON_ICON[reason] || "mail-message";
+}
+
+/**
+ * A stable colour for a language the forge did not colour itself.
+ *
+ * GitHub sends linguist's own colours; GitLab and Forgejo send none, and a
+ * language bar drawn entirely in the disabled-text colour is a grey smear.
+ * The hash is deterministic, so the same language keeps the same hue between
+ * launches, and the fixed saturation and lightness keep every stripe legible
+ * on both a light and a dark surface.
+ */
+function languageColor(name) {
+    if (!name)
+        return "";
+    var h = 0;
+    for (var i = 0; i < name.length; i++)
+        h = (h * 31 + name.charCodeAt(i)) % 360;
+    return hsl(h, 0.58, 0.55);
+}
+
+function hsl(h, s, l) {
+    function f(n) {
+        var k = (n + h / 30) % 12;
+        var a = s * Math.min(l, 1 - l);
+        var v = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+        return ("0" + Math.round(v * 255).toString(16)).slice(-2);
+    }
+    return "#" + f(0) + f(8) + f(4);
 }
 
 // ── run / check conclusions ─────────────────────────────────────────────────

@@ -11,7 +11,12 @@ RowLayout {
 
     property string iconName: ""
     property string label: ""
-    property int value: 0
+    /**
+     * `var`, not `int`: a figure a forge does not publish is null, and
+     * Fmt.compact renders that as an em dash. Typed as int it would silently
+     * become a confident zero.
+     */
+    property var value: 0
     property string tone: "muted"
 
     readonly property Tones tones: Tones {}

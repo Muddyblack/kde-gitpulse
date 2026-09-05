@@ -27,6 +27,8 @@ QtObject {
     readonly property color textDim: "#9aa2b4"
     readonly property color textFaint: "#6b7386"
     readonly property color line: Qt.rgba(1, 1, 1, 0.08)
+    /** The unfilled part of a bar, ring or heatmap cell. */
+    readonly property color track: Qt.rgba(1, 1, 1, 0.07)
     readonly property color lineStrong: Qt.rgba(1, 1, 1, 0.16)
 
     // Text that sits on top of a filled accent block.

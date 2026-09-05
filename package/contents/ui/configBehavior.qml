@@ -9,6 +9,9 @@ KCM.SimpleKCM {
     id: page
 
     property alias cfg_notifyEnabled: notifyBox.checked
+    property alias cfg_quietHoursEnabled: quietBox.checked
+    property alias cfg_quietFromHour: quietFrom.value
+    property alias cfg_quietToHour: quietTo.value
     property alias cfg_groupByRepo: groupBox.checked
     property alias cfg_undoWindowSec: undoSpin.value
     property string cfg_defaultTab: "inbox"
@@ -61,6 +64,51 @@ KCM.SimpleKCM {
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor
             text: i18n("Gitpulse raises a normal desktop notification. Whether that makes a sound, shows a popup or stays silent during Do Not Disturb is decided in System Settings ▸ Notifications, alongside every other application.")
+        }
+
+        QQC2.CheckBox {
+            id: quietBox
+
+            Kirigami.FormData.label: i18n("Quiet hours:")
+            enabled: notifyBox.checked
+            text: i18n("Do not interrupt me between")
+        }
+
+        RowLayout {
+            enabled: quietBox.checked && notifyBox.checked
+            spacing: Kirigami.Units.smallSpacing
+
+            QQC2.SpinBox {
+                id: quietFrom
+
+                from: 0
+                to: 23
+                textFromValue: (value, locale) => ("0" + value).slice(-2) + ":00"
+                valueFromText: text => parseInt(text, 10) || 0
+            }
+
+            QQC2.Label {
+                text: i18n("and")
+            }
+
+            QQC2.SpinBox {
+                id: quietTo
+
+                from: 0
+                to: 23
+                textFromValue: (value, locale) => ("0" + value).slice(-2) + ":00"
+                valueFromText: text => parseInt(text, 10) || 0
+            }
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
+            // Deliberately not "pause polling": the point is that the badge is
+            // right when you next look at it, without having been interrupted.
+            text: i18n("The tray badge and every list keep updating during quiet hours — only the notification is withheld, so nothing is missed.")
         }
 
         Item {

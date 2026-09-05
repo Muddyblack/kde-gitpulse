@@ -108,7 +108,7 @@ Rectangle {
 
             Text {
                 Layout.fillWidth: true
-                text: qsTr("%1 · %2 ago").arg(Format.humanise(entry.incident.status || "")).arg(Format.relative(entry.incident.updated_at))
+                text: Format.humanise(entry.incident.status || "") + " · " + Format.since(entry.incident.updated_at)
                 color: entry.theme.textFaint
                 font.pixelSize: 10
                 font.family: "monospace"
@@ -143,7 +143,7 @@ Rectangle {
 
                 Text {
                     Layout.fillWidth: true
-                    text: qsTr("%1 · %2 ago").arg(Format.humanise(update.modelData.status || "")).arg(Format.relative(update.modelData.updated_at))
+                    text: Format.humanise(update.modelData.status || "") + " · " + Format.since(update.modelData.updated_at)
                     color: entry.theme.of(entry.tone)
                     font.pixelSize: 10
                     font.family: "monospace"

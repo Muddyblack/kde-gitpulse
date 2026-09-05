@@ -9,6 +9,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
 import "shared" as Shared
+import "../code/Forge.js" as Forge
 import "../code/Format.js" as Fmt
 
 Item {
@@ -27,12 +28,13 @@ Item {
     readonly property Tones tones: Tones {}
     readonly property KirigamiIconAdapter iconAdapter: KirigamiIconAdapter {}
     readonly property bool unread: row.item.unread === true
+    readonly property bool hasDiff: row.item.additions !== null && row.item.additions !== undefined && row.item.deletions !== null && row.item.deletions !== undefined
 
     implicitHeight: layout.implicitHeight
 
     Accessible.role: Accessible.Button
     Accessible.name: row.item.title
-    Accessible.description: i18nc("repository, state and age", "%1 · %2 · %3 ago", row.item.repo, row.item.label, Fmt.relative(row.item.updatedAt))
+    Accessible.description: i18nc("repository, state and age", "%1 · %2 · %3", row.item.repo, row.item.label, Fmt.since(row.item.updatedAt))
 
     // Rounded hover/selection card instead of the stock square Highlight —
     // mirrors hyprland/ActivityItem.qml's rows so the list reads the same on
@@ -124,6 +126,12 @@ Item {
 
             ColumnLayout {
                 Layout.fillWidth: true
+                // Whatever the meta line below ends up carrying, this column is
+                // the part that gives way. Without a floor of zero its children
+                // set the row's minimum width, and anything that does not fit
+                // shoves the time and the More-actions chevron out of view
+                // instead of eliding.
+                Layout.minimumWidth: 0
                 spacing: Math.round(Kirigami.Units.smallSpacing / 2)
 
                 PlasmaComponents.Label {
@@ -140,13 +148,33 @@ Item {
                     Layout.fillWidth: true
                     spacing: Kirigami.Units.smallSpacing
 
+                    // Which forge this came from. Absent with one account
+                    // configured, because then it is not telling you anything.
+                    PlasmaComponents.Label {
+                        visible: row.engine && row.engine.liveAccounts.length > 1
+                        text: Forge.shortName(row.item.provider)
+                        font.family: "monospace"
+                        font.pixelSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.82)
+                        font.weight: Font.DemiBold
+                        color: Kirigami.Theme.disabledTextColor
+                        opacity: 0.8
+                    }
+
                     PlasmaComponents.Label {
                         text: row.item.repo + (row.item.number ? " " + row.item.number : "")
                         font.family: "monospace"
                         font.pixelSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.92)
                         color: Kirigami.Theme.disabledTextColor
                         elide: Text.ElideMiddle
-                        Layout.maximumWidth: parent.width * 0.55
+                        // Against the row's own width, not the layout's: a
+                        // RowLayout's width is derived from its children, so
+                        // constraining a child by `parent.width` here made the
+                        // layout depend on itself ("recursive rearrange").
+                        // The repo is the one thing here that can lose
+                        // characters and still be read, so it yields the space
+                        // a diff badge needs rather than the time and chevron
+                        // being pushed off the right edge.
+                        Layout.maximumWidth: row.width * (row.hasDiff ? 0.32 : 0.45)
                     }
 
                     Shared.Pill {
@@ -155,6 +183,12 @@ Item {
                         tone: row.item.tone
                         iconName: row.item.icon
                         iconDelegate: row.iconAdapter.delegate
+                    }
+
+                    Shared.DiffStat {
+                        theme: row.tones
+                        additions: row.item.additions
+                        deletions: row.item.deletions
                     }
 
                     Item {

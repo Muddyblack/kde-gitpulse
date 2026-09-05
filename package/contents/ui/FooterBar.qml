@@ -10,7 +10,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 PlasmaExtras.PlasmoidHeading {
     id: footer
@@ -34,25 +34,25 @@ PlasmaExtras.PlasmoidHeading {
         if (footer.tick < 0)
             return "";
         switch (footer.engine.primaryError) {
-        case GH.ERR.NO_TOKEN:
+        case Http.ERR.NO_TOKEN:
             return i18n("not configured");
-        case GH.ERR.OFFLINE:
+        case Http.ERR.OFFLINE:
             return footer.engine.lastUpdateMs > 0 ? i18n("offline · cache %1 old", Fmt.relative(new Date(footer.engine.lastUpdateMs).toISOString())) : i18n("offline");
-        case GH.ERR.RATE_LIMIT:
-            return i18n("paused · last %1 ago", Fmt.relative(new Date(footer.engine.lastUpdateMs).toISOString()));
+        case Http.ERR.RATE_LIMIT:
+            return i18n("paused · last %1", Fmt.since(new Date(footer.engine.lastUpdateMs).toISOString()));
         }
         if (footer.engine.lastUpdateMs === 0)
             return i18n("waiting for first sync");
-        return i18n("updated %1 ago", Fmt.relative(new Date(footer.engine.lastUpdateMs).toISOString()));
+        return i18n("updated %1", Fmt.since(new Date(footer.engine.lastUpdateMs).toISOString()));
     }
 
     readonly property string freshTone: {
         switch (footer.engine.primaryError) {
-        case GH.ERR.OFFLINE:
-        case GH.ERR.AUTH:
+        case Http.ERR.OFFLINE:
+        case Http.ERR.AUTH:
             return "negative";
-        case GH.ERR.RATE_LIMIT:
-        case GH.ERR.NO_TOKEN:
+        case Http.ERR.RATE_LIMIT:
+        case Http.ERR.NO_TOKEN:
             return "neutral";
         default:
             return "positive";

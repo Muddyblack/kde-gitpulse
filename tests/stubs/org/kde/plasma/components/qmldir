@@ -1,0 +1,10 @@
+module org.kde.plasma.components
+Label 1.0 Label.qml
+Button 1.0 Button.qml
+ToolButton 1.0 ToolButton.qml
+ToolTip 1.0 ToolTip.qml
+ScrollView 1.0 ScrollView.qml
+BusyIndicator 1.0 BusyIndicator.qml
+TabBar 1.0 TabBar.qml
+TabButton 1.0 TabButton.qml
+AbstractButton 1.0 AbstractButton.qml

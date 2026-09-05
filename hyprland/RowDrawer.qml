@@ -8,7 +8,7 @@ import QtQuick
 import QtQuick.Layouts
 
 import "../package/contents/code/Format.js" as Format
-import "../package/contents/code/GitHub.js" as GH
+import "../package/contents/code/Forge.js" as Forge
 
 Rectangle {
     id: drawer
@@ -22,6 +22,11 @@ Rectangle {
 
     readonly property bool isNotification: drawer.item.kind === "notification"
     readonly property bool isRun: drawer.item.kind === "run"
+    /** What this item's forge can actually do — see RowActions.qml. */
+    readonly property var caps: Forge.capabilities({
+        provider: drawer.item.provider
+    })
+
     readonly property int runPull: drawer.isRun && drawer.item.pullNumber ? drawer.item.pullNumber : 0
 
     implicitHeight: body.implicitHeight + drawer.theme.spacing * 2
@@ -96,13 +101,13 @@ Rectangle {
                 iconName: "pull"
                 text: qsTr("Pull request #%1").arg(drawer.runPull)
                 onClicked: {
-                    drawer.openUrl(GH.pullUrl(drawer.item.repo, drawer.runPull));
+                    drawer.openUrl(Forge.itemPullUrl(drawer.item));
                     drawer.done();
                 }
             }
 
             ActionButton {
-                visible: drawer.isRun
+                visible: drawer.isRun && drawer.caps.rerun
                 theme: drawer.theme
                 iconName: "refresh"
                 text: qsTr("Re-run")
@@ -124,7 +129,7 @@ Rectangle {
             }
 
             ActionButton {
-                visible: drawer.isNotification
+                visible: drawer.isNotification && drawer.caps.unsubscribe
                 theme: drawer.theme
                 iconName: "bell"
                 text: qsTr("Unsubscribe")
@@ -140,7 +145,7 @@ Rectangle {
                 iconName: "issue"
                 text: qsTr("Repository")
                 onClicked: {
-                    drawer.openUrl(GH.repoUrl(drawer.item.repo));
+                    drawer.openUrl(Forge.itemRepoUrl(drawer.item));
                     drawer.done();
                 }
             }
@@ -201,9 +206,14 @@ Rectangle {
                 key: qsTr("job"),
                 value: drawer.item.raw.display_title
             });
+        if (drawer.item.additions !== null && drawer.item.additions !== undefined && drawer.item.deletions !== null && drawer.item.deletions !== undefined)
+            f.push({
+                key: qsTr("diff"),
+                value: "+" + Number(drawer.item.additions).toLocaleString() + " / −" + Number(drawer.item.deletions).toLocaleString()
+            });
         f.push({
             key: qsTr("updated"),
-            value: qsTr("%1 ago").arg(Format.relative(drawer.item.updatedAt))
+            value: Format.since(drawer.item.updatedAt)
         });
         f.push({
             key: qsTr("url"),

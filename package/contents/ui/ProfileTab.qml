@@ -1,8 +1,11 @@
-// Profile: who you are on GitHub, and the shape of your last year.
+// Profile: who you are on the forge, and the shape of your last year.
 //
-// Everything here arrives in a single GraphQL round trip. When the token
-// cannot do GraphQL the tab still renders — it just says which part is
-// missing, rather than failing whole.
+// With more than one account configured the tab shows one at a time, picked by
+// the strip at the top; the engine keeps every account's bundle warm so
+// switching is instant rather than a fresh round trip.
+//
+// When a forge or a token cannot serve a part of this, the tab still renders —
+// it just says which part is missing, rather than failing whole.
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
@@ -11,7 +14,8 @@ import org.kde.plasma.extras as PlasmaExtras
 
 import "shared" as Shared
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Forge.js" as Forge
+import "../code/Http.js" as Http
 
 PlasmaComponents.ScrollView {
     id: tab
@@ -35,6 +39,32 @@ PlasmaComponents.ScrollView {
 
         width: tab.availableWidth
         spacing: Kirigami.Units.smallSpacing * 2
+
+        // ── which account ───────────────────────────────────────────────────
+        //
+        // Only earns its row when there is a choice to make.
+        Flow {
+            visible: tab.engine.liveAccounts.length > 1
+            Layout.fillWidth: true
+            Layout.margins: Kirigami.Units.smallSpacing * 2
+            Layout.bottomMargin: 0
+            spacing: Kirigami.Units.smallSpacing
+
+            Repeater {
+                model: tab.engine.liveAccounts
+
+                delegate: Shared.Pill {
+                    required property var modelData
+
+                    theme: tab.tones
+                    text: Forge.displayName(modelData) + (modelData.login ? " · " + modelData.login : "")
+                    tone: modelData.id === tab.engine.activeProfileId ? "accent" : "muted"
+                    filled: modelData.id === tab.engine.activeProfileId
+                    interactive: true
+                    onClicked: tab.engine.profileAccountId = modelData.id
+                }
+            }
+        }
 
         // ── identity ────────────────────────────────────────────────────────
         RowLayout {
@@ -118,6 +148,29 @@ PlasmaComponents.ScrollView {
             }
         }
 
+        // ── when I ship ─────────────────────────────────────────────────────
+        SectionLabel {
+            visible: band.visible
+            text: i18n("When I ship")
+            hint: tab.engine.rhythm.length ? i18nc("mostly in the morning", "mostly %1", tab.engine.rhythm[0].name) : ""
+            Layout.fillWidth: true
+            Layout.leftMargin: Kirigami.Units.smallSpacing * 2
+            Layout.rightMargin: Kirigami.Units.smallSpacing * 2
+        }
+
+        // Shared with hyprland/ProfilePane.qml — see shared/ActivityBand.qml.
+        Shared.ActivityBand {
+            id: band
+
+            theme: tab.tones
+            calendar: tab.engine.calendar
+            clock: tab.engine.clock
+            rhythm: tab.engine.rhythm
+            Layout.fillWidth: true
+            Layout.leftMargin: Kirigami.Units.smallSpacing * 2
+            Layout.rightMargin: Kirigami.Units.smallSpacing * 2
+        }
+
         // ── contributions ───────────────────────────────────────────────────
         SectionLabel {
             visible: tab.engine.calendar !== null
@@ -128,63 +181,19 @@ PlasmaComponents.ScrollView {
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
         }
 
-        // Compact streak summary: total contributions · current streak · longest.
-        // Mirrors the "compact" mode of hyprland/StreakCard.qml without the
-        // Quickshell-specific theme object — uses Kirigami palette instead.
-        RowLayout {
-            visible: tab.engine.calendar !== null
-            Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing * 2
-            Layout.rightMargin: Kirigami.Units.smallSpacing * 2
-            spacing: Kirigami.Units.smallSpacing * 2
+        Shared.Heatmap {
+            id: heatmap
 
-            Repeater {
-                model: [
-                    {
-                        value: tab.engine.calendar ? tab.engine.calendar.total.toLocaleString(Qt.locale(), "f", 0) : "0",
-                        label: i18n("contributions"),
-                        accent: true
-                    },
-                    {
-                        value: tab.engine.calendar ? tab.engine.calendar.current : "0",
-                        label: i18n("day streak"),
-                        accent: false
-                    },
-                    {
-                        value: tab.engine.calendar ? tab.engine.calendar.streak : "0",
-                        label: i18n("longest streak"),
-                        accent: false
-                    }
-                ]
-
-                delegate: RowLayout {
-                    required property var modelData
-
-                    Layout.fillWidth: true
-                    spacing: Math.round(Kirigami.Units.smallSpacing * 0.75)
-
-                    PlasmaExtras.Heading {
-                        level: 3
-                        text: parent.modelData.value
-                        color: parent.modelData.accent ? tab.tones.accent : Kirigami.Theme.textColor
-                    }
-
-                    PlasmaComponents.Label {
-                        text: parent.modelData.label
-                        font: Kirigami.Theme.smallFont
-                        color: Kirigami.Theme.disabledTextColor
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
-                }
-            }
-        }
-
-        ContribGraph {
+            theme: tab.tones
             calendar: tab.engine.calendar
+            gap: Math.max(1, Math.round(Kirigami.Units.smallSpacing / 2))
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing * 2
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
+
+            PlasmaComponents.ToolTip.visible: heatmap.hoveredDay !== null
+            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+            PlasmaComponents.ToolTip.text: heatmap.hoveredDay ? i18np("%1 contribution on %2", "%1 contributions on %2", heatmap.hoveredDay.count, heatmap.hoveredDay.date) : ""
         }
 
         PlasmaComponents.Label {
@@ -211,25 +220,6 @@ PlasmaComponents.ScrollView {
         Shared.TrendChart {
             theme: tab.tones
             series: tab.engine.calendar ? tab.engine.calendar.recent : []
-            Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing * 2
-            Layout.rightMargin: Kirigami.Units.smallSpacing * 2
-        }
-
-        // ── when I ship ─────────────────────────────────────────────────────
-        SectionLabel {
-            visible: tab.engine.rhythm.length > 0
-            text: i18n("When I ship")
-            hint: i18n("public events, local time")
-            Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.smallSpacing * 2
-            Layout.rightMargin: Kirigami.Units.smallSpacing * 2
-        }
-
-        // Shared with hyprland/ProfilePane.qml — see shared/RhythmBars.qml.
-        Shared.RhythmBars {
-            theme: tab.tones
-            buckets: tab.engine.rhythm
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing * 2
             Layout.rightMargin: Kirigami.Units.smallSpacing * 2
@@ -284,6 +274,9 @@ PlasmaComponents.ScrollView {
     readonly property var stats: {
         if (!tab.p)
             return [];
+        // Not every forge publishes every figure — Forgejo has no review count,
+        // GitLab no "stars earned across your own repositories". A missing one
+        // is dropped rather than rendered as a confident zero.
         return [
             {
                 icon: "rating",
@@ -333,17 +326,19 @@ PlasmaComponents.ScrollView {
                 value: tab.p.orgs,
                 tone: "muted"
             }
-        ];
+        ].filter(function (s) {
+            return s.value !== null && s.value !== undefined;
+        });
     }
 
     readonly property var placeholder: {
-        if (tab.engine.primaryError === GH.ERR.NO_TOKEN)
+        if (tab.engine.primaryError === Http.ERR.NO_TOKEN)
             return {
                 icon: "network-disconnect",
                 title: i18n("Not configured"),
                 body: i18n("Add a GitHub token to see your profile.")
             };
-        if (tab.err === GH.ERR.FORBIDDEN)
+        if (tab.err === Http.ERR.FORBIDDEN)
             return {
                 icon: "object-locked",
                 title: i18n("GraphQL not permitted"),

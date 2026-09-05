@@ -12,7 +12,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 PlasmaComponents.ScrollView {
     id: tab
@@ -201,13 +201,13 @@ PlasmaComponents.ScrollView {
     }
 
     readonly property string explanation: {
-        if (tab.engine.primaryError === GH.ERR.NO_TOKEN)
+        if (tab.engine.primaryError === Http.ERR.NO_TOKEN)
             return i18n("Add a GitHub token to see billed Copilot usage.");
         switch (tab.err) {
-        case GH.ERR.FORBIDDEN:
-        case GH.ERR.NOT_FOUND:
+        case Http.ERR.FORBIDDEN:
+        case Http.ERR.NOT_FOUND:
             return i18n("GitHub does not expose per-user Copilot statistics. Billed usage needs a fine-grained token with the “Plan” read permission on your account; completion and acceptance figures exist only for organisation admins.");
-        case GH.ERR.NONE:
+        case Http.ERR.NONE:
         case "":
             return i18n("No Copilot charges recorded this month.");
         default:

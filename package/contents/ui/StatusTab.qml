@@ -11,7 +11,7 @@ import org.kde.plasma.extras as PlasmaExtras
 
 import "../code/Contract.js" as Contract
 import "../code/Format.js" as Fmt
-import "../code/GitHub.js" as GH
+import "../code/Http.js" as Http
 
 PlasmaComponents.ScrollView {
     id: tab
@@ -198,6 +198,6 @@ PlasmaComponents.ScrollView {
 
         iconName: tab.engine.errorFor("status") === "" ? "state-sync" : "network-disconnect"
         text: tab.engine.errorFor("status") === "" ? i18n("Checking GitHub…") : i18n("Cannot reach githubstatus.com")
-        explanation: tab.engine.errorFor("status") === GH.ERR.OFFLINE ? i18n("No network connection.") : tab.engine.messageFor("status")
+        explanation: tab.engine.errorFor("status") === Http.ERR.OFFLINE ? i18n("No network connection.") : tab.engine.messageFor("status")
     }
 }

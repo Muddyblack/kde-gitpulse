@@ -1,15 +1,16 @@
 // Profile pane for the Quickshell frontend.
 //
-// Everything except the activity rhythm comes from one GraphQL round trip; the
-// rhythm costs one extra REST call on the slow timer. Nothing here is invented:
-// if a figure is not in the payload, its row is simply absent.
+// With more than one account configured this shows one at a time, picked by
+// the strip at the top. Nothing here is invented: if a figure is not in the
+// payload — and no forge publishes all of them — its cell is simply absent.
 import QtQuick
 import QtQuick.Controls.Basic as QC
 import QtQuick.Layouts
 
 import "../package/contents/ui/shared" as Shared
 import "../package/contents/code/Format.js" as Format
-import "../package/contents/code/GitHub.js" as GH
+import "../package/contents/code/Forge.js" as Forge
+import "../package/contents/code/Http.js" as Http
 
 QC.ScrollView {
     id: pane
@@ -21,6 +22,7 @@ QC.ScrollView {
     readonly property var cal: pane.engine.calendar
 
     contentWidth: availableWidth
+    contentHeight: content.implicitHeight
     clip: true
 
     component Section: RowLayout {
@@ -29,7 +31,7 @@ QC.ScrollView {
 
         spacing: 6
         Layout.fillWidth: true
-        Layout.topMargin: pane.theme.spacing
+        Layout.topMargin: pane.theme.spacingSmall + 2
 
         Text {
             text: parent.title
@@ -58,44 +60,73 @@ QC.ScrollView {
         }
     }
 
-    readonly property var stats: pane.p ? [
-        {
-            label: qsTr("stars"),
-            value: pane.p.starsEarned
-        },
-        {
-            label: qsTr("commits"),
-            value: pane.p.commits
-        },
-        {
-            label: qsTr("PRs"),
-            value: pane.p.pulls
-        },
-        {
-            label: qsTr("issues"),
-            value: pane.p.issues
-        },
-        {
-            label: qsTr("reviews"),
-            value: pane.p.reviews
-        },
-        {
-            label: qsTr("repos"),
-            value: pane.p.repos
-        },
-        {
-            label: qsTr("followers"),
-            value: pane.p.followers
-        },
-        {
-            label: qsTr("orgs"),
-            value: pane.p.orgs
-        }
-    ] : []
+    readonly property var stats: (pane.p ? [
+            {
+                label: qsTr("stars"),
+                value: pane.p.starsEarned
+            },
+            {
+                label: qsTr("commits"),
+                value: pane.p.commits
+            },
+            {
+                label: qsTr("PRs"),
+                value: pane.p.pulls
+            },
+            {
+                label: qsTr("issues"),
+                value: pane.p.issues
+            },
+            {
+                label: qsTr("reviews"),
+                value: pane.p.reviews
+            },
+            {
+                label: qsTr("repos"),
+                value: pane.p.repos
+            },
+            {
+                label: qsTr("followers"),
+                value: pane.p.followers
+            },
+            {
+                label: qsTr("orgs"),
+                value: pane.p.orgs
+            }
+        ] : []).filter(function (s) {
+        return s.value !== null && s.value !== undefined;
+    })
 
     ColumnLayout {
+        id: content
+
         width: pane.availableWidth
         spacing: pane.theme.spacingSmall
+
+        // ══ which account ═══════════════════════════════════════════════════
+        //
+        // Only earns its row when there is a choice to make.
+        Flow {
+            visible: pane.engine.liveAccounts.length > 1
+            Layout.fillWidth: true
+            Layout.bottomMargin: pane.theme.spacingSmall
+            spacing: pane.theme.spacingSmall
+
+            Repeater {
+                model: pane.engine.liveAccounts
+
+                delegate: Shared.Pill {
+                    required property var modelData
+
+                    theme: pane.theme
+                    text: Forge.displayName(modelData) + (modelData.login ? " · " + modelData.login : "")
+                    tone: modelData.id === pane.engine.activeProfileId ? "accent" : "muted"
+                    filled: modelData.id === pane.engine.activeProfileId
+                    interactive: true
+                    onClicked: pane.engine.profileAccountId = modelData.id
+                }
+            }
+        }
 
         // ══ identity ════════════════════════════════════════════════════════
         RowLayout {
@@ -202,16 +233,6 @@ QC.ScrollView {
             }
         }
 
-        // ══ streaks ═════════════════════════════════════════════════════════
-        StreakCard {
-            visible: pane.cal !== null
-            theme: pane.theme
-            calendar: pane.cal
-            compact: true
-            Layout.fillWidth: true
-            Layout.topMargin: pane.theme.spacingSmall
-        }
-
         // ══ numbers ═════════════════════════════════════════════════════════
         GridLayout {
             // Keep the detail grid for a narrow popup, where the header does
@@ -250,6 +271,24 @@ QC.ScrollView {
             }
         }
 
+        // ══ when I ship, and the streaks ════════════════════════════════════
+        Section {
+            visible: band.visible
+            title: qsTr("When I ship")
+            hint: pane.engine.rhythm.length ? qsTr("mostly %1").arg(pane.engine.rhythm[0].name) : ""
+        }
+
+        Shared.ActivityBand {
+            id: band
+
+            theme: pane.theme
+            calendar: pane.cal
+            clock: pane.engine.clock
+            rhythm: pane.engine.rhythm
+            Layout.fillWidth: true
+            Layout.topMargin: pane.theme.spacingSmall
+        }
+
         // ══ contributions ═══════════════════════════════════════════════════
         Section {
             visible: pane.cal !== null
@@ -257,10 +296,16 @@ QC.ScrollView {
             hint: pane.cal ? qsTr("%1 active days").arg(pane.cal.activeDays) : ""
         }
 
-        HeatMap {
+        Shared.Heatmap {
+            id: heatmap
+
             theme: pane.theme
             calendar: pane.cal
             Layout.fillWidth: true
+
+            QC.ToolTip.visible: heatmap.hoveredDay !== null
+            QC.ToolTip.delay: 400
+            QC.ToolTip.text: heatmap.hoveredDay ? heatmap.hoveredDay.count + qsTr(" on ") + heatmap.hoveredDay.date : ""
         }
 
         Text {
@@ -284,19 +329,6 @@ QC.ScrollView {
             Layout.fillWidth: true
         }
 
-        // ══ rhythm ══════════════════════════════════════════════════════════
-        Section {
-            visible: pane.engine.rhythm.length > 0
-            title: qsTr("When I ship")
-            hint: qsTr("public events, local time")
-        }
-
-        Shared.RhythmBars {
-            theme: pane.theme
-            buckets: pane.engine.rhythm
-            Layout.fillWidth: true
-        }
-
         // ══ languages ═══════════════════════════════════════════════════════
         Section {
             visible: pane.engine.languages.length > 0
@@ -310,7 +342,7 @@ QC.ScrollView {
             Layout.topMargin: 2
             implicitHeight: 8
             radius: 4
-            color: Qt.rgba(1, 1, 1, 0.07)
+            color: pane.theme.track
             clip: true
 
             Row {
@@ -334,27 +366,25 @@ QC.ScrollView {
             visible: pane.engine.languages.length > 0
             Layout.fillWidth: true
             Layout.bottomMargin: pane.theme.spacing
-            spacing: pane.theme.spacing
+            spacing: 6
 
             Repeater {
                 model: pane.engine.languages
 
-                delegate: Row {
+                delegate: RowLayout {
                     required property var modelData
 
                     spacing: 4
 
                     Rectangle {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 7
-                        height: 7
+                        implicitWidth: 7
+                        implicitHeight: 7
                         radius: 3.5
-                        color: parent.modelData.color && parent.modelData.color.length ? parent.modelData.color : pane.theme.textDim
+                        color: modelData.color && modelData.color.length ? modelData.color : pane.theme.textDim
                     }
 
                     Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: parent.modelData.name + " " + Math.round(parent.modelData.share) + "%"
+                        text: modelData.name + " " + Math.round(modelData.share) + "%"
                         color: pane.theme.textDim
                         font.pixelSize: 9
                     }
@@ -367,7 +397,7 @@ QC.ScrollView {
             visible: pane.p === null
             Layout.fillWidth: true
             Layout.topMargin: 40
-            text: pane.engine.primaryError === GH.ERR.NO_TOKEN ? qsTr("Add a GitHub token to see your profile.") : pane.engine.errorFor("profile") === GH.ERR.FORBIDDEN ? qsTr("GraphQL refused this token. Add a classic token with read:user as the Profile token in settings.") : qsTr("Loading profile…")
+            text: pane.engine.primaryError === Http.ERR.NO_TOKEN ? qsTr("Add a GitHub token to see your profile.") : pane.engine.errorFor("profile") === Http.ERR.FORBIDDEN ? qsTr("GraphQL refused this token. Add a classic token with read:user as the Profile token in settings.") : qsTr("Loading profile…")
             color: pane.theme.textDim
             font.pixelSize: 12
             horizontalAlignment: Text.AlignHCenter
@@ -375,6 +405,12 @@ QC.ScrollView {
         }
 
         Item {
+            visible: pane.p !== null
+            implicitHeight: pane.theme.spacing
+        }
+
+        Item {
+            visible: pane.p === null
             Layout.fillHeight: true
         }
     }

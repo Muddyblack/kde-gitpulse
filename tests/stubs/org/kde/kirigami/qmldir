@@ -1,0 +1,10 @@
+module org.kde.kirigami
+singleton Theme 1.0 Theme.qml
+singleton Units 1.0 Units.qml
+MessageType 1.0 MessageType.qml
+Icon 1.0 Icon.qml
+InlineMessage 1.0 InlineMessage.qml
+Separator 1.0 Separator.qml
+ShadowedImage 1.0 ShadowedImage.qml
+AbstractCard 1.0 AbstractCard.qml
+Action 1.0 Action.qml

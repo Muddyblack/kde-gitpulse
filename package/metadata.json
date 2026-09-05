@@ -3,10 +3,10 @@
   "KPlugin": {
     "Id": "org.muddyblack.gitpulse",
     "Name": "Gitpulse",
-    "Description": "The pulse of your repos — notifications, CI runs, pull requests, issues, profile and GitHub service health in your panel",
+    "Description": "The pulse of your repos — GitHub, GitLab and Codeberg notifications, CI runs, pull requests, issues, profile and service health in your panel",
     "Icon": "org.muddyblack.gitpulse",
     "Category": "Online Services",
-    "Version": "1.0.2",
+    "Version": "1.1.0",
     "Website": "https://github.com/Muddyblack/kde-gitpulse",
     "Authors": [
       {

@@ -1,14 +1,19 @@
 [h1]Gitpulse[/h1]
 
-Gitpulse is a KDE Plasma 6 System Tray widget that keeps the GitHub work that
-needs your attention in your panel. Review requests, mentions, assignments,
-failing Actions runs, pull requests, issues, profile activity, Copilot health
-and GitHub service status are one click away.
+Gitpulse is a KDE Plasma 6 System Tray widget that keeps the work that needs
+your attention in your panel — from GitHub, GitLab and Codeberg at the same
+time. Review requests, mentions, assignments, failing pipelines, pull requests,
+issues, profile activity, Copilot health and GitHub service status are one
+click away.
 
 ---
 
 [b]Features[/b]
 [list]
+[*] [b]Every Forge, One Inbox:[/b] GitHub, GitLab and Codeberg side by side —
+public instances, GitHub Enterprise Server, a self-hosted GitLab, or any
+Forgejo or Gitea server. Add as many accounts as you like; one badge counts
+them all, and each row shows which forge it came from.
 [*] [b]Actionable Inbox:[/b] See unread notifications, mentions, team mentions,
 assignments, review requests and security alerts. Open or mark them read
 directly from the popup.
@@ -19,8 +24,12 @@ entries are counted only once.
 you pushed to, with failed runs surfaced first.
 [*] [b]Pull Requests and Issues:[/b] Review requests, your own pull requests,
 and issues you are involved in stay grouped and easy to scan.
-[*] [b]Profile View:[/b] Account statistics, a contribution graph and language
-mix, using your Plasma accent colour.
+[*] [b]Profile View:[/b] Account statistics, a contribution graph, a 24-hour
+commit dial showing when in the day you actually work, streak figures and your
+language mix — all in your Plasma accent colour.
+[*] [b]Quiet Hours:[/b] Set a window and Gitpulse stops interrupting inside it.
+The badge and the lists keep updating, so nothing is missed — it just does not
+interrupt.
 [*] [b]Service Health:[/b] GitHub Status components, recent incidents and
 Copilot service health are available without opening a browser.
 [*] [b]Plasma-native:[/b] Uses the System Tray, desktop notifications, theme

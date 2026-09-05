@@ -8,19 +8,29 @@
   <kcfgfile name="gitpulserc"/>
   <group name="General">
 
-    <!-- Credentials.
+    <!-- Accounts, as a JSON array:
+           [{ id, provider, host, token, graphqlToken, label, useCli, enabled }]
+         provider is "github", "gitlab" or "codeberg"; host lets any of the
+         three point at a self-hosted instance. One string rather than a set
+         of keys because kcfg has no list type, and the schema is already
+         written down once in Forge.js.
+
          Stored in the per-user plasmoid config under $XDG_CONFIG_HOME, which
          is mode 0600 and not world readable. Gitpulse only ever asks for
          read scopes, so a leaked token cannot mutate anything. -->
+    <entry name="accounts" type="String">
+      <default></default>
+    </entry>
+
+    <!-- Gitpulse 1.x kept a single GitHub token in these three keys. main.qml
+         moves them into `accounts` on first run and blanks them; they stay in
+         the schema so that migration has something to read. -->
     <entry name="token" type="String">
       <default></default>
     </entry>
-    <!-- Optional classic token used only for the GraphQL profile query, for
-         when the main token is fine-grained and GraphQL refuses it. -->
     <entry name="graphqlToken" type="String">
       <default></default>
     </entry>
-    <!-- Borrow the GitHub CLI's stored credential instead of pasting one. -->
     <entry name="useGhCli" type="Bool">
       <default>false</default>
     </entry>
@@ -134,6 +144,23 @@
       <default>6</default>
       <min>0</min>
       <max>30</max>
+    </entry>
+
+    <!-- Quiet hours. The badge and the lists keep updating; only the desktop
+         notification is withheld, so nothing is missed — it just does not
+         interrupt. -->
+    <entry name="quietHoursEnabled" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="quietFromHour" type="Int">
+      <default>22</default>
+      <min>0</min>
+      <max>23</max>
+    </entry>
+    <entry name="quietToHour" type="Int">
+      <default>8</default>
+      <min>0</min>
+      <max>23</max>
     </entry>
 
   </group>

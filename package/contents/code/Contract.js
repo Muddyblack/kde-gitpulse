@@ -1,23 +1,28 @@
-// Gitpulse — normalisation.
+// Gitpulse — the shared vocabulary.
 //
-// Five very different GitHub payloads collapse into one item shape here, so
-// the QML rows, the badge arithmetic and the two frontends never branch on
-// which endpoint something came from.
+// Three forges, a dozen very different payloads, one item shape. Each provider
+// module (GitHub.js, GitLab.js, Forgejo.js) turns its own JSON into `item()`
+// below; everything above this file — the QML rows, the badge arithmetic and
+// both frontends — never branches on which forge something came from.
 //
 //   { id, kind, repo, title, url, subjectKey, tone, label, icon,
-//     reason, actor, updatedAt, unread, number, detail, yours, raw }
+//     reason, actor, updatedAt, unread, number, detail, yours,
+//     account, provider, raw }
 //
 // `tone` is the only colour vocabulary the UI knows: positive, negative,
-// neutral, accent, muted. It maps to Kirigami.Theme roles in one place.
+// neutral, accent, muted. It maps to a real colour in exactly one place per
+// frontend (Tones.qml and hyprland/Theme.qml).
 .pragma library
 
 .import "Format.js" as Fmt
-.import "GitHub.js" as GH
 
 /**
  * Notification reasons that mean somebody is waiting on this user. Everything
  * else is still shown, but it never reaches the tray badge — a badge that
  * counts "subscribed" threads is a badge people learn to ignore.
+ *
+ * GitLab and Forgejo do not send GitHub's `reason` field; their providers map
+ * their own signals onto these same names rather than inventing new ones.
  */
 var NEEDS_YOU_REASONS = {
     review_requested: true,
@@ -35,34 +40,53 @@ var KIND = {
     ISSUE: "issue"
 };
 
-// ── notifications ───────────────────────────────────────────────────────────
-
-function notification(raw) {
-    var subject = raw.subject || {};
-    var repo = (raw.repository && raw.repository.full_name) || "";
-    var url = GH.webUrlFor(subject.url, repo);
+/**
+ * The canonical item constructor.
+ *
+ * Every provider funnels through here, which is what stops the three of them
+ * drifting apart field by field: a row that reads `item.draft` gets `false`
+ * rather than `undefined` no matter which forge produced it.
+ */
+function item(spec) {
+    var s = spec || {};
     return {
-        // The owner's picture is what turns a wall of text into something
-        // scannable — the same trick GitHub's own inbox uses.
-        avatarUrl: (raw.repository && raw.repository.owner && raw.repository.owner.avatar_url) || "",
-        id: "n:" + raw.id,
-        threadId: raw.id,
-        kind: KIND.NOTIFICATION,
-        repo: repo,
-        title: subject.title || "(no title)",
-        url: url,
-        subjectKey: subjectKey(subject.url),
-        tone: raw.unread ? reasonTone(raw.reason) : "muted",
-        label: Fmt.reasonLabel(raw.reason),
-        icon: Fmt.reasonIcon(raw.reason),
-        reason: raw.reason || "",
-        actor: "",
-        updatedAt: raw.updated_at || "",
-        unread: !!raw.unread,
-        number: numberFrom(subject.url),
-        detail: Fmt.humanise(subject.type || ""),
-        yours: false,
-        raw: raw
+        id: s.id || "",
+        kind: s.kind || KIND.NOTIFICATION,
+        repo: s.repo || "",
+        title: s.title || "(no title)",
+        url: s.url || "",
+        subjectKey: s.subjectKey || "",
+        tone: s.tone || "muted",
+        label: s.label || "",
+        icon: s.icon || "mail-message",
+        reason: s.reason || "",
+        actor: s.actor || "",
+        avatarUrl: s.avatarUrl || "",
+        updatedAt: s.updatedAt || "",
+        unread: !!s.unread,
+        number: s.number || "",
+        detail: s.detail || "",
+        yours: !!s.yours,
+        // Pull-request and issue extras. Present on every item so a filter can
+        // read them unconditionally.
+        draft: !!s.draft,
+        merged: !!s.merged,
+        assigned: !!s.assigned,
+        reviewRequested: !!s.reviewRequested,
+        running: !!s.running,
+        // Mutation handles: only the provider that made the item knows what
+        // these mean.
+        threadId: s.threadId || "",
+        runId: s.runId || 0,
+        pullNumber: s.pullNumber || 0,
+        additions: s.additions !== undefined && s.additions !== null ? Number(s.additions) : null,
+        deletions: s.deletions !== undefined && s.deletions !== null ? Number(s.deletions) : null,
+        // Which configured account this came from, so a two-forge inbox can be
+        // grouped, filtered and acted on per account.
+        account: s.account || "",
+        provider: s.provider || "github",
+        host: s.host || "",
+        raw: s.raw || null
     };
 }
 
@@ -76,115 +100,15 @@ function reasonTone(reason) {
     return "muted";
 }
 
-// ── Actions runs ────────────────────────────────────────────────────────────
-
-function run(raw, viewerLogin) {
-    var repo = (raw.repository && raw.repository.full_name) || raw._repo || "";
-    var actor = (raw.actor && raw.actor.login) || (raw.triggering_actor && raw.triggering_actor.login) || "";
-    // A run triggered by a pull request carries it here, which lets the UI
-    // offer "open the pull request" instead of only the run log.
-    var prs = raw.pull_requests || [];
-    return {
-        pullNumber: prs.length ? prs[0].number : 0,
-        avatarUrl: (raw.actor && raw.actor.avatar_url) || (raw.repository && raw.repository.owner && raw.repository.owner.avatar_url) || "",
-        id: "r:" + raw.id,
-        runId: raw.id,
-        kind: KIND.RUN,
-        repo: repo,
-        title: raw.name || raw.display_title || "workflow",
-        url: raw.html_url || GH.runUrl(repo, raw.id),
-        subjectKey: "",
-        tone: Fmt.runTone(raw.status, raw.conclusion),
-        label: Fmt.runLabel(raw.status, raw.conclusion),
-        icon: Fmt.runIcon(raw.status, raw.conclusion),
-        reason: "",
-        actor: actor,
-        updatedAt: raw.updated_at || raw.created_at || "",
-        unread: false,
-        number: raw.run_number ? "#" + raw.run_number : "",
-        detail: raw.head_branch || "",
-        // "Yours" decides whether a red pipeline reaches the badge. A failure
-        // on a colleague's branch is information; a failure on yours is a task.
-        yours: !viewerLogin || actor === viewerLogin || raw.head_branch === "main" || raw.head_branch === "master",
-        running: raw.status === "in_progress" || raw.status === "queued" || raw.status === "pending",
-        raw: raw
-    };
-}
-
-// ── search results (pull requests and issues) ───────────────────────────────
-
-function searchItem(raw, viewerLogin) {
-    var isPull = !!raw.pull_request;
-    var repo = repoFromIssueUrl(raw.repository_url || raw.html_url);
-    var merged = isPull && !!raw.pull_request.merged_at;
-    var draft = !!raw.draft;
-    var author = (raw.user && raw.user.login) || "";
-    var assigned = (raw.assignees || []).some(function (a) {
-        return a.login === viewerLogin;
-    });
-
-    if (isPull) {
-        return {
-            avatarUrl: (raw.user && raw.user.avatar_url) || "",
-            id: "p:" + raw.id,
-            kind: KIND.PULL,
-            repo: repo,
-            title: raw.title || "",
-            url: raw.html_url,
-            subjectKey: subjectKey(raw.pull_request.url || raw.url),
-            tone: Fmt.pullTone(raw.state, draft, merged),
-            label: Fmt.pullLabel(raw.state, draft, merged),
-            icon: Fmt.pullIcon(raw.state, draft, merged),
-            reason: "",
-            actor: author,
-            updatedAt: raw.updated_at || "",
-            unread: false,
-            number: "#" + raw.number,
-            detail: (raw.comments ? raw.comments + " comments" : ""),
-            yours: author === viewerLogin,
-            draft: draft,
-            merged: merged,
-            assigned: assigned,
-            // Filled in by the caller: the search query that produced this item
-            // is the only reliable signal that a review was requested of you.
-            reviewRequested: false,
-            raw: raw
-        };
-    }
-
-    return {
-        avatarUrl: (raw.user && raw.user.avatar_url) || "",
-        id: "i:" + raw.id,
-        kind: KIND.ISSUE,
-        repo: repo,
-        title: raw.title || "",
-        url: raw.html_url,
-        subjectKey: subjectKey(raw.url),
-        tone: raw.state === "closed" ? "muted" : assigned ? "accent" : "positive",
-        label: raw.state === "closed" ? "closed" : assigned ? "assigned" : "open",
-        icon: raw.state === "closed" ? "dialog-ok" : "view-task",
-        reason: "",
-        actor: author,
-        updatedAt: raw.updated_at || "",
-        unread: false,
-        number: "#" + raw.number,
-        detail: labelNames(raw.labels).join(", "),
-        yours: author === viewerLogin,
-        assigned: assigned,
-        raw: raw
-    };
-}
-
-function labelNames(labels) {
-    return (labels || []).map(function (l) {
-        return typeof l === "string" ? l : l.name;
-    }).filter(Boolean);
-}
+// ── URL and id helpers, shared by the providers ─────────────────────────────
 
 function repoFromIssueUrl(url) {
     if (!url)
         return "";
     var m = String(url).match(/repos\/([^/]+\/[^/]+)/);
+    if (m)
+        return m[1];
+    m = String(url).match(/\/([^/]+\/[^/]+)\/(?:issues|pull|pulls|-)\//);
     if (m)
         return m[1];
     m = String(url).match(/github\.com\/([^/]+\/[^/]+)/);
@@ -201,26 +125,36 @@ function numberFrom(url) {
 /**
  * A stable key for "the thing this item is about", so a ci_activity
  * notification and the failed run behind it, or a review_requested
- * notification and the PR itself, can be recognised as one event.
+ * notification and the pull request itself, can be recognised as one event.
+ *
+ * Scoped by account: two forges can both have an `owner/repo/issues/1`, and
+ * de-duplicating across them would silently hide one of the two.
  */
-function subjectKey(apiUrl) {
+function subjectKey(accountId, apiUrl) {
     if (!apiUrl)
         return "";
-    return String(apiUrl).replace(/^https:\/\/api\.github\.com\/repos\//, "").replace(/\/pulls\//, "/issues/");
+    var path = String(apiUrl).replace(/^https?:\/\/[^/]+\//, "").replace(/^api\/v[0-9]+\//, "").replace(/^repos\//, "").replace(/\/(?:pulls|merge_requests)\//, "/issues/");
+    return (accountId || "") + "|" + path;
+}
+
+function labelNames(labels) {
+    return (labels || []).map(function (l) {
+        return typeof l === "string" ? l : (l && (l.name || l.title)) || "";
+    }).filter(Boolean);
 }
 
 // ── badge arithmetic ────────────────────────────────────────────────────────
 
-function needsYou(item) {
-    if (!item)
+function needsYou(it) {
+    if (!it)
         return false;
-    switch (item.kind) {
+    switch (it.kind) {
     case KIND.NOTIFICATION:
-        return item.unread && !!NEEDS_YOU_REASONS[item.reason];
+        return it.unread && !!NEEDS_YOU_REASONS[it.reason];
     case KIND.RUN:
-        return item.tone === "negative" && item.yours;
+        return it.tone === "negative" && it.yours;
     case KIND.PULL:
-        return !!item.reviewRequested;
+        return !!it.reviewRequested;
     default:
         // Assigned issues are tracked but never inflate the badge: the badge
         // means "someone is blocked on you", and an open issue is not that.
@@ -240,22 +174,22 @@ function dedupe(sections) {
     var order = ["inbox", "pulls", "issues", "actions"];
 
     order.forEach(function (name) {
-        (sections[name] || []).forEach(function (item) {
-            var counted = needsYou(item);
+        (sections[name] || []).forEach(function (it) {
+            var counted = needsYou(it);
             if (!counted) {
-                item.counts = false;
-                item.duplicate = false;
+                it.counts = false;
+                it.duplicate = false;
                 return;
             }
-            var key = item.subjectKey;
+            var key = it.subjectKey;
             if (key && claimed[key]) {
-                item.counts = false;
-                item.duplicate = true;
+                it.counts = false;
+                it.duplicate = true;
             } else {
-                item.counts = true;
-                item.duplicate = false;
+                it.counts = true;
+                it.duplicate = false;
                 if (key)
-                    claimed[key] = item.kind;
+                    claimed[key] = it.kind;
             }
         });
     });
@@ -403,89 +337,111 @@ function groupByRepo(items) {
 
 // ── profile ─────────────────────────────────────────────────────────────────
 
-/** Flattens the GraphQL user node into what the Profile tab actually draws. */
-function profile(userNode) {
-    if (!userNode)
-        return null;
-    var c = userNode.contributionsCollection || {};
-    var repos = (userNode.repositories && userNode.repositories.nodes) || [];
-    var stars = repos.reduce(function (n, r) {
-        return n + (r.stargazerCount || 0);
-    }, 0);
+/**
+ * The profile shape every provider fills in.
+ *
+ * Not every forge has every figure — Forgejo has no review count, GitLab has
+ * no "stars earned" across your own repositories — so a missing number is
+ * `null`, which the UI renders as "—" rather than as a confident zero.
+ */
+function profile(spec) {
+    var s = spec || {};
+    function num(v) {
+        return v === undefined || v === null ? null : v;
+    }
     return {
-        login: userNode.login || "",
-        name: userNode.name || userNode.login || "",
-        bio: userNode.bio || "",
-        avatarUrl: userNode.avatarUrl || "",
-        url: userNode.url || "",
-        company: userNode.company || "",
-        location: userNode.location || "",
-        website: userNode.websiteUrl || "",
-        createdAt: userNode.createdAt || "",
-        followers: count(userNode.followers),
-        following: count(userNode.following),
-        gists: count(userNode.gists),
-        starred: count(userNode.starredRepositories),
-        orgs: count(userNode.organizations),
-        sponsors: count(userNode.sponsors),
-        repos: (userNode.repositories && userNode.repositories.totalCount) || repos.length,
-        starsEarned: stars,
-        commits: c.totalCommitContributions || 0,
-        pulls: c.totalPullRequestContributions || 0,
-        issues: c.totalIssueContributions || 0,
-        reviews: c.totalPullRequestReviewContributions || 0,
-        privateContributions: c.restrictedContributionsCount || 0
+        login: s.login || "",
+        name: s.name || s.login || "",
+        bio: s.bio || "",
+        avatarUrl: s.avatarUrl || "",
+        url: s.url || "",
+        company: s.company || "",
+        location: s.location || "",
+        website: s.website || "",
+        createdAt: s.createdAt || "",
+        followers: num(s.followers),
+        following: num(s.following),
+        gists: num(s.gists),
+        starred: num(s.starred),
+        orgs: num(s.orgs),
+        sponsors: num(s.sponsors),
+        repos: num(s.repos),
+        starsEarned: num(s.starsEarned),
+        commits: num(s.commits),
+        pulls: num(s.pulls),
+        issues: num(s.issues),
+        reviews: num(s.reviews),
+        privateContributions: s.privateContributions || 0,
+        provider: s.provider || "github"
     };
 }
 
-function count(node) {
-    return (node && node.totalCount) || 0;
-}
-
 /**
- * Contribution calendar → a fixed 7-row grid plus intensity levels.
+ * Day counts → a fixed 7-row grid plus intensity levels.
+ *
+ * Takes the provider-neutral `[{ date: "YYYY-MM-DD", count: n }]` list, sorted
+ * or not, so GitHub's GraphQL calendar and Forgejo's heatmap endpoint reach the
+ * same grid without the UI knowing the difference.
  *
  * Levels are cut at the 90th percentile of active days rather than the maximum
  * so one 200-commit merge day does not flatten the rest of the year to level 1.
  */
-function calendar(contributionsCollection) {
-    var cal = contributionsCollection && contributionsCollection.contributionCalendar;
-    if (!cal || !cal.weeks)
+function calendar(days, totalOverride) {
+    var list = (days || []).filter(function (d) {
+        return d && d.date;
+    });
+    if (!list.length)
         return null;
 
+    list = list.slice().sort(function (a, b) {
+        return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    });
+
     var counts = [];
-    cal.weeks.forEach(function (w) {
-        (w.contributionDays || []).forEach(function (d) {
-            if (d.contributionCount > 0)
-                counts.push(d.contributionCount);
-        });
+    list.forEach(function (d) {
+        if (d.count > 0)
+            counts.push(d.count);
     });
     counts.sort(function (a, b) {
         return a - b;
     });
     var ceiling = counts.length ? counts[Math.floor(counts.length * 0.9)] || counts[counts.length - 1] : 1;
 
-    // Flat, chronological — the grid is for the eye, this is for the maths.
-    var flat = [];
-    var weeks = cal.weeks.map(function (w) {
-        var days = new Array(7);
-        (w.contributionDays || []).forEach(function (d) {
-            var cell = {
-                date: d.date,
-                count: d.contributionCount,
-                level: level(d.contributionCount, ceiling)
-            };
-            days[d.weekday] = cell;
-            flat.push(cell);
-        });
-        for (var i = 0; i < 7; i++) {
-            if (!days[i])
-                days[i] = null; // padding at the start/end of the range
-        }
-        return days;
+    // Pad to whole weeks so the grid has no ragged column: the first cell of
+    // the range rarely lands on a Sunday.
+    var flat = list.map(function (d) {
+        return {
+            date: d.date,
+            count: d.count || 0,
+            level: level(d.count || 0, ceiling)
+        };
     });
 
-    var total = cal.totalContributions || 0;
+    var weeks = [];
+    var week = new Array(7);
+    var filled = false;
+    flat.forEach(function (cell) {
+        var wd = new Date(cell.date + "T00:00:00Z").getUTCDay();
+        if (filled && wd === 0) {
+            weeks.push(week);
+            week = new Array(7);
+        }
+        week[wd] = cell;
+        filled = true;
+    });
+    if (filled)
+        weeks.push(week);
+    weeks.forEach(function (w) {
+        for (var i = 0; i < 7; i++) {
+            if (!w[i])
+                w[i] = null; // padding at the start/end of the range
+        }
+    });
+
+    var total = totalOverride === undefined || totalOverride === null ? flat.reduce(function (n, d) {
+        return n + d.count;
+    }, 0) : totalOverride;
+
     return {
         total: total,
         weeks: weeks,
@@ -495,8 +451,12 @@ function calendar(contributionsCollection) {
         busiestDate: busiestDate(flat),
         activeDays: counts.length,
         average: flat.length ? total / flat.length : 0,
-        streak: longestStreak(cal.weeks),
+        streak: longestStreak(flat),
+        streakSpan: longestStreakSpan(flat),
         current: currentStreak(flat),
+        currentFrom: currentStreakStart(flat),
+        first: flat.length ? flat[0].date : "",
+        last: flat.length ? flat[flat.length - 1].date : "",
         recent: flat.slice(-30)
     };
 }
@@ -532,11 +492,115 @@ function currentStreak(flat) {
     return n;
 }
 
+/** The date the run that is still going began, for the caption under it. */
+function currentStreakStart(flat) {
+    var n = currentStreak(flat);
+    if (!n || !flat.length)
+        return "";
+    var end = flat.length - 1;
+    if (flat[end].count === 0)
+        end--;
+    var start = end - n + 1;
+    return start >= 0 ? flat[start].date : flat[0].date;
+}
+
+function longestStreak(flat) {
+    var best = 0;
+    var cur = 0;
+    (flat || []).forEach(function (d) {
+        if (d.count > 0) {
+            cur++;
+            if (cur > best)
+                best = cur;
+        } else {
+            cur = 0;
+        }
+    });
+    return best;
+}
+
+/** The dates the record streak ran between, for the caption under it. */
+function longestStreakSpan(flat) {
+    var best = 0;
+    var span = ["", ""];
+    var cur = 0;
+    var start = "";
+    (flat || []).forEach(function (d) {
+        if (d.count > 0) {
+            if (!cur)
+                start = d.date;
+            cur++;
+            if (cur > best) {
+                best = cur;
+                span = [start, d.date];
+            }
+        } else {
+            cur = 0;
+            start = "";
+        }
+    });
+    return span;
+}
+
+function level(count, ceiling) {
+    if (!count)
+        return 0;
+    if (!ceiling || count >= ceiling)
+        return 4;
+    return Math.max(1, Math.min(4, Math.ceil(count / ceiling * 4)));
+}
+
+// ── time of day ─────────────────────────────────────────────────────────────
+
 /**
- * Time-of-day distribution from the public events feed.
+ * When in the day this account works — 24 buckets in the viewer's own
+ * timezone, which is the only one that answers the question being asked.
  *
- * Buckets are in the viewer's own timezone, which is the only one that answers
- * the question being asked ("when do I work?").
+ * `samples` is `[{ at: <ISO string or epoch ms>, count: n }]`. Providers hand
+ * over whatever they have: GitHub push events with their commit counts,
+ * GitLab's event feed, Forgejo's notification and commit timestamps.
+ */
+function clock(samples) {
+    var hours = new Array(24);
+    for (var i = 0; i < 24; i++)
+        hours[i] = 0;
+
+    var total = 0;
+    (samples || []).forEach(function (s) {
+        if (!s)
+            return;
+        var t = typeof s.at === "number" ? s.at : Date.parse(s.at);
+        if (isNaN(t))
+            return;
+        var n = s.count === undefined || s.count === null ? 1 : s.count;
+        if (n <= 0)
+            return;
+        hours[new Date(t).getHours()] += n;
+        total += n;
+    });
+    if (!total)
+        return null;
+
+    var peak = 0;
+    var peakHour = 0;
+    for (var h = 0; h < 24; h++) {
+        if (hours[h] > peak) {
+            peak = hours[h];
+            peakHour = h;
+        }
+    }
+    return {
+        hours: hours,
+        peak: peak,
+        peakHour: peakHour,
+        total: total,
+        tz: Fmt.tzLabel()
+    };
+}
+
+/**
+ * Coarse named buckets, derived from the 24-bin clock rather than from the
+ * events a second time — one pass over the data, two ways of reading it.
  */
 var RHYTHM_BUCKETS = [
     {
@@ -566,106 +630,71 @@ var RHYTHM_BUCKETS = [
     }
 ];
 
-function rhythm(events) {
-    var counts = {};
-    RHYTHM_BUCKETS.forEach(function (b) {
-        counts[b.id] = 0;
-    });
-
-    var total = 0;
-    (events || []).forEach(function (e) {
-        var t = Date.parse(e.created_at);
-        if (isNaN(t))
-            return;
-        var h = new Date(t).getHours();
-        for (var i = 0; i < RHYTHM_BUCKETS.length; i++) {
-            var b = RHYTHM_BUCKETS[i];
-            if (h >= b.from && h <= b.to) {
-                counts[b.id]++;
-                total++;
-                break;
-            }
-        }
-    });
-    if (!total)
+function rhythm(clockOut) {
+    if (!clockOut || !clockOut.total)
         return [];
-
     return RHYTHM_BUCKETS.map(function (b) {
+        var n = 0;
+        for (var h = b.from; h <= b.to; h++)
+            n += clockOut.hours[h];
         return {
             name: b.id,
-            count: counts[b.id],
-            share: counts[b.id] / total * 100
+            count: n,
+            share: n / clockOut.total * 100
         };
     }).sort(function (a, b) {
         return b.count - a.count;
     });
 }
 
-function level(count, ceiling) {
-    if (!count)
-        return 0;
-    if (!ceiling || count >= ceiling)
-        return 4;
-    return Math.max(1, Math.min(4, Math.ceil(count / ceiling * 4)));
+/** "morning" → "06:00–11:59", for the caption beside the dial. */
+function bucketRange(name) {
+    for (var i = 0; i < RHYTHM_BUCKETS.length; i++) {
+        var b = RHYTHM_BUCKETS[i];
+        if (b.id === name)
+            return Fmt.hourLabel(b.from) + "–" + Fmt.hourLabel(b.to) + ":59";
+    }
+    return "";
 }
 
-function longestStreak(weeks) {
-    var best = 0;
-    var cur = 0;
-    weeks.forEach(function (w) {
-        (w.contributionDays || []).forEach(function (d) {
-            if (d.contributionCount > 0) {
-                cur++;
-                if (cur > best)
-                    best = cur;
-            } else {
-                cur = 0;
-            }
-        });
-    });
-    return best;
-}
+// ── languages ───────────────────────────────────────────────────────────────
 
 /**
- * Language mix by bytes across the user's own non-fork repositories.
- * Colours come from the API, so the bar matches what GitHub itself shows
- * without this file carrying a hard-coded language palette.
+ * Language mix by bytes, from the provider-neutral
+ * `[{ name, bytes, color }]` list every forge can produce.
  */
-function languages(userNode, topN) {
-    var repos = (userNode && userNode.repositories && userNode.repositories.nodes) || [];
+function languages(list, topN) {
     var totals = {};
     var colours = {};
     var grand = 0;
 
-    repos.forEach(function (r) {
-        var edges = (r.languages && r.languages.edges) || [];
-        edges.forEach(function (e) {
-            if (!e || !e.node)
-                return;
-            var n = e.node.name;
-            totals[n] = (totals[n] || 0) + (e.size || 0);
-            colours[n] = e.node.color || "";
-            grand += e.size || 0;
-        });
+    (list || []).forEach(function (l) {
+        if (!l || !l.name)
+            return;
+        totals[l.name] = (totals[l.name] || 0) + (l.bytes || 0);
+        if (l.color)
+            colours[l.name] = l.color;
+        grand += l.bytes || 0;
     });
     if (!grand)
         return [];
 
-    var list = Object.keys(totals).map(function (n) {
+    var ranked = Object.keys(totals).map(function (n) {
         return {
             name: n,
             bytes: totals[n],
-            color: colours[n],
+            color: colours[n] || "",
             share: totals[n] / grand * 100
         };
     });
-    list.sort(function (a, b) {
+    ranked.sort(function (a, b) {
         return b.bytes - a.bytes;
     });
 
-    var top = list.slice(0, topN || 6);
-    var rest = list.slice(topN || 6).reduce(function (n, l) {
-        return n + l.share;
+    var n = topN || 6;
+    var top = ranked.slice(0, n);
+    var rest = ranked.slice(n).reduce(function (acc, l) {
+        return acc + l.share;
     }, 0);
     if (rest > 0.5)
         top.push({

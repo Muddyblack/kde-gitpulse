@@ -14,6 +14,7 @@ import Quickshell.Io
 // Resolvable only because the config root is the repository root — see
 // ../shell.qml for why this file is not the entry point.
 import "../package/contents/ui/engine" as EngineNS
+import "../package/contents/code/Forge.js" as Forge
 
 ShellRoot {
     id: root
@@ -75,8 +76,29 @@ ShellRoot {
         cfg.mutedRepos = list.join(", ");
     }
 
-    /** Whichever credential the user chose; the engine only sees the result. */
-    readonly property string activeToken: cfg.useGhCli ? gh.token : cfg.token
+    // ── accounts ────────────────────────────────────────────────────────────
+    //
+    // The same JSON the Plasma side stores, so an account set up in one
+    // frontend can be pasted into the other unchanged.
+    readonly property var accounts: Forge.parse(cfg.accounts)
+
+    /**
+     * Carry a single-token config file into the account list, once.
+     *
+     * Quickshell rewrites the whole JSON on any change, so the legacy keys are
+     * blanked in the same pass rather than left to shadow the new list.
+     */
+    function migrateLegacyConfig() {
+        if (cfg.accounts !== "")
+            return;
+        var moved = Forge.migrate(cfg.token, cfg.graphqlToken, cfg.useGhCli);
+        if (!moved.length)
+            return;
+        cfg.accounts = Forge.stringify(moved);
+        cfg.token = "";
+        cfg.graphqlToken = "";
+        cfg.useGhCli = false;
+    }
 
     Theme {
         id: ui
@@ -88,7 +110,7 @@ ShellRoot {
     GhToken {
         id: gh
 
-        enabled: cfg.useGhCli
+        enabled: root.accounts.some(a => a.useCli)
     }
 
     // ── persisted settings ──────────────────────────────────────────────────
@@ -110,9 +132,15 @@ ShellRoot {
         JsonAdapter {
             id: cfg
 
+            property string accounts: ""
+            // Read once by migrateLegacyConfig(), then blanked. Kept in the
+            // adapter so an existing config file still has somewhere to land.
             property string token: ""
             property string graphqlToken: ""
             property bool useGhCli: false
+            property bool quietHoursEnabled: false
+            property int quietFromHour: 22
+            property int quietToHour: 8
             property bool actionsEnabled: true
             property bool pullsEnabled: true
             property bool issuesEnabled: true
@@ -143,13 +171,23 @@ ShellRoot {
 
     Binding {
         target: root.core
-        property: "token"
-        value: root.activeToken
+        property: "accountsJson"
+        value: cfg.accounts
     }
     Binding {
         target: root.core
-        property: "graphqlToken"
-        value: cfg.graphqlToken
+        property: "cliToken"
+        value: gh.token
+    }
+    Binding {
+        target: root.core
+        property: "quietFromHour"
+        value: cfg.quietHoursEnabled ? cfg.quietFromHour : 0
+    }
+    Binding {
+        target: root.core
+        property: "quietToHour"
+        value: cfg.quietHoursEnabled ? cfg.quietToHour : 0
     }
     Binding {
         target: root.core
@@ -229,7 +267,10 @@ ShellRoot {
         }
     }
 
-    Component.onCompleted: root.core.start()
+    Component.onCompleted: {
+        root.migrateLegacyConfig();
+        root.core.start();
+    }
 
     // ── tray IPC ────────────────────────────────────────────────────────────
     IpcHandler {
@@ -256,7 +297,7 @@ ShellRoot {
         }
 
         function summary(): string {
-            if (!root.activeToken)
+            if (!core.configured)
                 return qsTr("Gitpulse — not configured");
             if (core.badge.needsYou === 0)
                 return qsTr("Gitpulse — nothing needs you");
