@@ -1,4 +1,4 @@
-.PHONY: help view view-h install uninstall pack tag test lint format shots
+.PHONY: help view view-h install uninstall pack tag test lint format shots opendesktop
 .DEFAULT_GOAL := help
 
 # Qt tooling: prefer the dev shell, fall back to whatever is on PATH.
@@ -86,6 +86,9 @@ shots: ## render both UIs to PNGs in ./build/shots (needs the `qml` runtime)
 	@$(TEST_ENV) $(QMLRUN) tests/hyprland-smoke.qml -- --shot "$(PWD)/build/shots" >/dev/null 2>&1
 	@$(PLASMA_ENV) $(QMLRUN) tests/plasma-smoke.qml -- --shot "$(PWD)/build/shots" >/dev/null 2>&1
 	@ls build/shots
+
+opendesktop: ## rasterize the readme SVGs to PNGs in readme/opendesktop (needs `inkscape`)
+	@readme/export_opendesktop.sh
 
 lint: ## qmllint every QML file
 	@if [ -z "$(QMLLINT)" ]; then echo "qmllint not found — run 'nix develop'"; exit 1; fi
