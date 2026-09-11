@@ -12,7 +12,7 @@ Rectangle {
     property bool prominent: false
 
     implicitWidth: Math.max(implicitHeight, label.implicitWidth + Kirigami.Units.smallSpacing * 1.5)
-    implicitHeight: Math.round(Kirigami.Theme.smallFont.pixelSize * 1.35)
+    implicitHeight: Math.round(Kirigami.Theme.smallFont.pixelSize * 1.1)
     radius: height / 2
     color: pip.prominent ? pip.tones.accent : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.1)
 

@@ -120,8 +120,8 @@ Flickable {
                 readonly property bool checked: chips.current === modelData.id
                 readonly property bool chipEnabled: chip.n > 0 || chip.modelData.id === "all" || chip.checked
 
-                implicitWidth: chipRow.implicitWidth + Kirigami.Units.gridUnit
-                implicitHeight: Math.round(Kirigami.Units.gridUnit * 1.35)
+                implicitWidth: chipRow.implicitWidth + Kirigami.Units.smallSpacing * 3
+                implicitHeight: Math.round(Kirigami.Units.gridUnit * 1.05)
                 radius: height / 2
                 color: chip.checked ? chips.tones.accent : "transparent"
                 border.width: chip.checked ? 0 : 1

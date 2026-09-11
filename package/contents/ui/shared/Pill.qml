@@ -33,8 +33,8 @@ Rectangle {
 
     signal clicked
 
-    implicitWidth: row.implicitWidth + 14
-    implicitHeight: Math.round(pill.theme.smallFontSize * 1.8)
+    implicitWidth: row.implicitWidth + 12
+    implicitHeight: Math.round(pill.theme.smallFontSize * 1.5)
     radius: height / 2
     color: pill.filled ? pill.theme.of(pill.tone) : pill.theme.wash(pill.tone, pill.interactive && tap.hovered ? 0.28 : 0.16)
 
@@ -71,6 +71,9 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             active: pill.iconName !== "" && pill.iconDelegate !== null
             visible: active
+            // Constrain the loaded icon: theme defaults can exceed the badge.
+            width: active ? Math.round(pill.theme.smallFontSize) : 0
+            height: width
             sourceComponent: pill.iconDelegate
         }
 

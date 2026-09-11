@@ -101,14 +101,14 @@ Item {
             // Tone circle carrying the kind/reason glyph.
             Rectangle {
                 Layout.alignment: Qt.AlignTop
-                implicitWidth: Kirigami.Units.iconSizes.smallMedium
-                implicitHeight: Kirigami.Units.iconSizes.smallMedium
+                implicitWidth: Kirigami.Units.iconSizes.small
+                implicitHeight: Kirigami.Units.iconSizes.small
                 radius: width / 2
                 color: row.tones.wash(row.item.tone, 0.16)
 
                 Kirigami.Icon {
                     anchors.centerIn: parent
-                    width: Math.round(Kirigami.Units.iconSizes.small * 0.8)
+                    width: Math.round(Kirigami.Units.iconSizes.small * 0.7)
                     height: width
                     source: row.item.icon
                     color: row.tones.of(row.item.tone)

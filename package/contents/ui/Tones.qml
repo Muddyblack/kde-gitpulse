@@ -40,7 +40,7 @@ QtObject {
     readonly property int longDuration: Kirigami.Units.longDuration
     /** Baseline for small chrome text (pills, captions) — tracks the user's
      *  actual font/DPI scale, unlike a component hardcoding a raw pixel size. */
-    readonly property int smallFontSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.88)
+    readonly property int smallFontSize: Math.round(Kirigami.Theme.smallFont.pixelSize * 0.82)
 
     /**
      * The system accent by default — including Plasma 6's accent-from-wallpaper
