@@ -10,7 +10,7 @@
       appletId = metadata.KPlugin.Id;
     in {
       packages = forAllSystems (system:
-        let pkgs = import nixpkgs { inherit system; };
+        let pkgs = nixpkgs.legacyPackages.${system};
         in {
           default = pkgs.stdenvNoCC.mkDerivation {
             pname = "gitpulse";
@@ -58,7 +58,7 @@
 
       apps = forAllSystems (system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = nixpkgs.legacyPackages.${system};
           quickshellDesktop = pkgs.makeDesktopItem {
             name = "org.quickshell";
             desktopName = "Quickshell";
@@ -80,7 +80,8 @@
                 echo "  'nix run .#view' previews your working copy, so run it from the repo root." >&2
                 exit 1
               fi
-              exec nix shell nixpkgs#kdePackages.plasma-sdk nixpkgs#kdePackages.plasma-desktop -c plasmoidviewer \
+              export PATH=${pkgs.lib.makeBinPath [ pkgs.kdePackages.plasma-sdk pkgs.kdePackages.plasma-desktop ]}:"$PATH"
+              exec plasmoidviewer \
                 -a "$PWD/package" -f "''${1:-planar}"
             '');
           };
@@ -122,7 +123,7 @@
         });
 
       devShells = forAllSystems (system:
-        let pkgs = import nixpkgs { inherit system; };
+        let pkgs = nixpkgs.legacyPackages.${system};
         in {
           default = pkgs.mkShell {
             name = "gitpulse-dev";
