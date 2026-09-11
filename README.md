@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="readme/icon.svg" width="96" alt="Gitpulse icon">
+  <img src="./package/icon.png" width="96" alt="Gitpulse icon">
 </p>
 
 <h1 align="center">Gitpulse</h1>
