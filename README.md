@@ -18,6 +18,7 @@
   <a href="https://github.com/Muddyblack/kde-gitpulse/releases">
     <img src="https://img.shields.io/github/downloads/Muddyblack/kde-gitpulse/total?style=for-the-badge&logo=github&logoColor=white&label=GitHub%20Downloads&color=blue" alt="GitHub Downloads" />
   </a>
+  <img src="https://img.shields.io/badge/Started-August_2026-9c27b0?style=for-the-badge" alt="Project started August 2026" />
 </p>
 
 <p align="center"><strong>The pulse of your repos, in your panel.</strong></p>
