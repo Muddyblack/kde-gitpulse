@@ -374,6 +374,7 @@ PlasmoidItem {
     function announce(items) {
         if (!Plasmoid.configuration.notifyEnabled || !items.length)
             return;
+        notifier.pendingItems = items;
         if (items.length === 1) {
             notifier.title = i18n("%1 · %2", items[0].repo, Fmt.reasonLabel(items[0].reason) || items[0].label);
             notifier.text = items[0].title;
@@ -392,6 +393,7 @@ PlasmoidItem {
         id: notifier
 
         property string pendingUrl: ""
+        property var pendingItems: []
 
         componentName: "plasma_workspace"
         eventId: "notification"
@@ -402,6 +404,17 @@ PlasmoidItem {
             label: i18n("Open")
             onActivated: root.openUrl(notifier.pendingUrl)
         }
+
+        actions: [
+            NotificationAction {
+                label: i18n("Dismiss")
+                onActivated: {
+                    for (var i = 0; i < notifier.pendingItems.length; i++) {
+                        root.engine.markRead(notifier.pendingItems[i]);
+                    }
+                }
+            }
+        ]
     }
 
     Component.onCompleted: {
