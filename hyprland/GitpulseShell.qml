@@ -158,6 +158,7 @@ ShellRoot {
             property string accent: "#3daee9"
             property real backgroundOpacity: 0.85
             property bool glass: true
+            property bool showUserAvatars: true
         }
     }
 
@@ -258,6 +259,11 @@ ShellRoot {
         target: root.core
         property: "copilotOrg"
         value: cfg.copilotOrg
+    }
+    Binding {
+        target: root.core
+        property: "showUserAvatars"
+        value: cfg.showUserAvatars
     }
 
     Connections {

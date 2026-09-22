@@ -108,16 +108,16 @@ Rectangle {
 
             RoundAvatar {
                 anchors.fill: parent
-                visible: row.item.avatarUrl !== undefined && row.item.avatarUrl !== ""
+                visible: (row.engine ? row.engine.showUserAvatars : true) && row.item.avatarUrl !== undefined && row.item.avatarUrl !== ""
                 theme: row.theme
-                source: row.engine && row.engine.avatarSourceFor ? row.engine.avatarSourceFor(row.item.avatarUrl || "") : row.item.avatarUrl || ""
+                source: row.engine && row.engine.avatarSourceFor ? row.engine.avatarSourceFor(row.item.avatarUrl || "") : (row.engine && !row.engine.showUserAvatars ? "" : row.item.avatarUrl || "")
                 login: row.item.repo
             }
 
             Rectangle {
                 id: dot
 
-                readonly property bool solo: !row.item.avatarUrl
+                readonly property bool solo: !row.item.avatarUrl || (row.engine && !row.engine.showUserAvatars)
 
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom

@@ -42,7 +42,7 @@ Item {
 
                 anchors.fill: parent
                 login: Plasmoid.configuration.showProfilePicture ? slot.engine.viewerLogin : ""
-                source: Plasmoid.configuration.showProfilePicture ? (slot.engine.avatarSource || slot.engine.avatarUrl) : ""
+                source: Plasmoid.configuration.showProfilePicture ? (slot.engine.avatarSourceFor ? slot.engine.avatarSourceFor(slot.engine.avatarUrl, true) : (slot.engine.avatarSource || slot.engine.avatarUrl)) : ""
                 // Stale data should look stale rather than quietly lie.
                 opacity: slot.engine.stale ? 0.5 : 1
 

@@ -17,6 +17,7 @@ KCM.SimpleKCM {
     property string cfg_accentMode: "system"
     property alias cfg_customAccent: accentButton.color
     property alias cfg_showProfilePicture: showProfilePictureCheck.checked
+    property alias cfg_showUserAvatars: showUserAvatarsCheck.checked
     property string cfg_surfaceMode: "solid"
     property alias cfg_popupOpacity: opacity.value
 
@@ -177,6 +178,21 @@ KCM.SimpleKCM {
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor
             text: i18n("When unchecked, the GitHub icon is shown instead of your avatar.")
+        }
+
+        QQC2.CheckBox {
+            id: showUserAvatarsCheck
+
+            Kirigami.FormData.label: i18n("Avatars:")
+            text: i18n("Show user avatars inside app")
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
+            text: i18n("When unchecked, user avatars are not loaded inside lists, profiles, or headers.")
         }
     }
 }

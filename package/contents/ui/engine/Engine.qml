@@ -60,6 +60,7 @@ QtObject {
     property bool profileEnabled: true
     property bool copilotEnabled: true
     property bool statusEnabled: true
+    property bool showUserAvatars: true
 
     /**
      * Quiet hours, as 0–23 local hours. While inside the window the badge and
@@ -255,8 +256,8 @@ QtObject {
      * header, profile and activity entry for the same account therefore hit
      * Qt's one in-memory image entry, not the network independently.
      */
-    function avatarSourceFor(url) {
-        if (!url)
+    function avatarSourceFor(url, force) {
+        if (!url || (!engine.showUserAvatars && !force))
             return "";
         return url + (url.indexOf("?") === -1 ? "?" : "&") + "gitpulse-avatar=" + engine._avatarCacheVersion;
     }
