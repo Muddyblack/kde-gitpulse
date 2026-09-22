@@ -258,6 +258,11 @@ PlasmoidItem {
         property: "statusEnabled"
         value: Plasmoid.configuration.statusEnabled
     }
+    Binding {
+        target: root.engine
+        property: "showUserAvatars"
+        value: Plasmoid.configuration.showUserAvatars
+    }
 
     // Only the instance that wins ownership reacts to shared-engine signals —
     // see Engine.qml's claimOwner()/releaseOwner() for why.

@@ -569,6 +569,20 @@ QC.ScrollView {
             }
         }
 
+        Toggle {
+            Layout.fillWidth: true
+            Layout.topMargin: page.theme.spacingSmall
+            text: qsTr("Show user avatars")
+            checked: page.settings.showUserAvatars !== false
+            onToggled: v => page.settings.showUserAvatars = v
+        }
+
+        Caption {
+            Layout.fillWidth: true
+            visible: page.settings.showUserAvatars === false
+            text: qsTr("Avatars for authors and profiles are not downloaded; category glyphs are used instead.")
+        }
+
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: 1
