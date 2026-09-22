@@ -120,6 +120,9 @@
     <entry name="customAccent" type="String">
       <default></default>
     </entry>
+    <entry name="showProfilePicture" type="Bool">
+      <default>true</default>
+    </entry>
     <!-- solid | translucent | glass.
          translucent hands the job to Plasma's own blurred dialog background;
          glass paints a tinted card with a lit top edge, matching the rest of

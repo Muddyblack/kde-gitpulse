@@ -49,6 +49,7 @@ QtObject {
         property string copilotOrg: ""
         property string accentMode: "system"
         property string customAccent: ""
+        property bool showProfilePicture: true
         property string surfaceMode: "solid"
         property real popupOpacity: 0.85
         property bool notifyEnabled: true

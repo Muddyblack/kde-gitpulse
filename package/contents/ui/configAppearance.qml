@@ -16,6 +16,7 @@ KCM.SimpleKCM {
 
     property string cfg_accentMode: "system"
     property alias cfg_customAccent: accentButton.color
+    property alias cfg_showProfilePicture: showProfilePictureCheck.checked
     property string cfg_surfaceMode: "solid"
     property alias cfg_popupOpacity: opacity.value
 
@@ -157,6 +158,25 @@ KCM.SimpleKCM {
             enabled: page.cfg_surfaceMode === "glass"
             text: i18n("%1%", Math.round(opacity.value * 100))
             font.family: "monospace"
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+        }
+
+        QQC2.CheckBox {
+            id: showProfilePictureCheck
+
+            Kirigami.FormData.label: i18n("Widget icon:")
+            text: i18n("Show profile picture")
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            font: Kirigami.Theme.smallFont
+            color: Kirigami.Theme.disabledTextColor
+            text: i18n("When unchecked, the GitHub icon is shown instead of your avatar.")
         }
     }
 }

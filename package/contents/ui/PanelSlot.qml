@@ -41,8 +41,8 @@ Item {
                 id: face
 
                 anchors.fill: parent
-                login: slot.engine.viewerLogin
-                source: slot.engine.avatarSource || slot.engine.avatarUrl
+                login: Plasmoid.configuration.showProfilePicture ? slot.engine.viewerLogin : ""
+                source: Plasmoid.configuration.showProfilePicture ? (slot.engine.avatarSource || slot.engine.avatarUrl) : ""
                 // Stale data should look stale rather than quietly lie.
                 opacity: slot.engine.stale ? 0.5 : 1
 
