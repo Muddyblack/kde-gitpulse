@@ -216,6 +216,22 @@ Rectangle {
             }
 
             IconButton {
+                visible: row.item.kind === "notification" || row.unread
+                theme: row.theme
+                iconName: "check"
+                tip: qsTr("Dismiss")
+                size: 20
+                opacity: row.showActions ? 1 : 0
+                onClicked: row.dismissed()
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: row.theme.shortDuration
+                    }
+                }
+            }
+
+            IconButton {
                 theme: row.theme
                 iconName: "external"
                 tip: qsTr("Open in browser")

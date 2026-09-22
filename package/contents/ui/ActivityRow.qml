@@ -9,6 +9,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 
 import "shared" as Shared
+import "../code/Contract.js" as Contract
 import "../code/Forge.js" as Forge
 import "../code/Format.js" as Fmt
 
@@ -209,28 +210,53 @@ Item {
                     color: Kirigami.Theme.disabledTextColor
                 }
 
-                PlasmaComponents.ToolButton {
+                RowLayout {
                     Layout.alignment: Qt.AlignRight
-                    icon.name: "expand"
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    text: i18n("More actions")
-                    flat: true
-                    opacity: mouse.containsMouse || row.selected || row.expanded ? 1 : 0
-                    rotation: row.expanded ? 180 : 0
-                    onClicked: row.toggleExpanded()
+                    spacing: 0
 
-                    PlasmaComponents.ToolTip.text: i18n("More actions  ( Space )")
-                    PlasmaComponents.ToolTip.visible: hovered
-                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    PlasmaComponents.ToolButton {
+                        visible: row.item.kind === Contract.KIND.NOTIFICATION || row.unread
+                        icon.name: "mail-mark-read"
+                        display: PlasmaComponents.AbstractButton.IconOnly
+                        text: i18n("Dismiss")
+                        flat: true
+                        opacity: mouse.containsMouse || row.selected ? 1 : 0
+                        onClicked: row.engine.markRead(row.item)
 
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Kirigami.Units.shortDuration
+                        PlasmaComponents.ToolTip.text: i18n("Dismiss (Mark read)")
+                        PlasmaComponents.ToolTip.visible: hovered
+                        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Kirigami.Units.shortDuration
+                            }
                         }
                     }
-                    Behavior on rotation {
-                        NumberAnimation {
-                            duration: Kirigami.Units.longDuration
+
+                    PlasmaComponents.ToolButton {
+                        Layout.alignment: Qt.AlignRight
+                        icon.name: "expand"
+                        display: PlasmaComponents.AbstractButton.IconOnly
+                        text: i18n("More actions")
+                        flat: true
+                        opacity: mouse.containsMouse || row.selected || row.expanded ? 1 : 0
+                        rotation: row.expanded ? 180 : 0
+                        onClicked: row.toggleExpanded()
+
+                        PlasmaComponents.ToolTip.text: i18n("More actions  ( Space )")
+                        PlasmaComponents.ToolTip.visible: hovered
+                        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Kirigami.Units.shortDuration
+                            }
+                        }
+                        Behavior on rotation {
+                            NumberAnimation {
+                                duration: Kirigami.Units.longDuration
+                            }
                         }
                     }
                 }
