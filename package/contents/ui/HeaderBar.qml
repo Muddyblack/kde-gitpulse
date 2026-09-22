@@ -27,7 +27,7 @@ PlasmaExtras.PlasmoidHeading {
 
         Avatar {
             login: header.engine.viewerLogin
-            source: header.engine.avatarSource || header.engine.avatarUrl
+            source: header.engine.avatarSource
             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
         }

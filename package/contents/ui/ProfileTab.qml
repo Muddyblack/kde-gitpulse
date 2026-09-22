@@ -76,7 +76,7 @@ PlasmaComponents.ScrollView {
 
             Avatar {
                 login: tab.engine.viewerLogin
-                source: tab.engine.avatarSource || tab.engine.avatarUrl
+                source: tab.engine.avatarSource
                 Layout.alignment: Qt.AlignTop
                 Layout.preferredWidth: Kirigami.Units.iconSizes.huge
                 Layout.preferredHeight: Kirigami.Units.iconSizes.huge

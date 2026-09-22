@@ -26,7 +26,7 @@ ColumnLayout {
 
         Avatar {
             login: tip.engine.viewerLogin
-            source: tip.engine.avatarSource || tip.engine.avatarUrl
+            source: tip.engine.avatarSource
             Layout.preferredWidth: Kirigami.Units.iconSizes.medium
             Layout.preferredHeight: Kirigami.Units.iconSizes.medium
         }
