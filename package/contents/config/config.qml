@@ -25,4 +25,10 @@ ConfigModel {
         icon: "configure"
         source: "configBehavior.qml"
     }
+
+    ConfigCategory {
+        name: i18n("Info")
+        icon: "help-about"
+        source: "configInfo.qml"
+    }
 }

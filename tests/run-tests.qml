@@ -13,6 +13,7 @@ import "../package/contents/code/GitLab.js" as GL
 import "../package/contents/code/Forgejo.js" as FJ
 import "../package/contents/code/Forge.js" as Forge
 import "../package/contents/code/Http.js" as Http
+import "../package/contents/code/ProjectInfo.js" as Project
 import "ApiSamples.js" as Api
 
 QtObject {
@@ -1238,6 +1239,66 @@ QtObject {
                 status: "investigating"
             }
         ]).length, 1);
+
+        // ── ProjectInfo ────────────────────────────────────────────────────
+        describe("ProjectInfo metadata & versioning");
+        eq("project name is Gitpulse", Project.name, "Gitpulse");
+        eq("project author is Muddyblack", Project.author, "Muddyblack");
+        eq("project currentVersion is 2.0.2", Project.currentVersion, "2.0.2");
+        eq("project statistics has 3 sources", Project.statistics.length, 3);
+        eq("project funding has 3 options", Project.funding.length, 3);
+
+        describe("ProjectInfo.parseVersion");
+        var v = Project.parseVersion("2.0.2");
+        ok("valid version parses", v !== null);
+        eq("major matches", v.numbers[0], 2);
+        eq("minor matches", v.numbers[1], 0);
+        eq("patch matches", v.numbers[2], 2);
+        eq("v-prefix strips cleanly", Project.parseVersion("v2.0.2").numbers[2], 2);
+        eq("prerelease parses", Project.parseVersion("2.0.3-beta").prerelease, "beta");
+        ok("invalid version returns null", Project.parseVersion("not-a-version") === null);
+
+        describe("ProjectInfo.releaseStatus");
+        eq("update available when remote is newer patch", Project.releaseStatus("2.0.2", "2.0.3"), "Update available");
+        eq("update available when remote is newer minor", Project.releaseStatus("2.0.2", "2.1.0"), "Update available");
+        eq("update available when remote is newer major", Project.releaseStatus("2.0.2", "3.0.0"), "Update available");
+        eq("up to date when versions match", Project.releaseStatus("2.0.2", "2.0.2"), "Up to date");
+        eq("local prerelease sees same version as update available", Project.releaseStatus("2.0.2-beta", "2.0.2"), "Update available");
+        eq("newer than latest release when local ahead", Project.releaseStatus("2.0.3", "2.0.2"), "Newer than latest release");
+        eq("invalid returns unavailable", Project.releaseStatus("invalid", "2.0.2"), "Version comparison unavailable");
+
+        describe("ProjectInfo.releaseVersion");
+        eq("valid release tag stripped", Project.releaseVersion('{"tag_name":"v2.0.3","draft":false,"prerelease":false}'), "2.0.3");
+        eq("draft release ignored", Project.releaseVersion('{"tag_name":"v2.0.3","draft":true,"prerelease":false}'), "");
+        eq("prerelease release ignored", Project.releaseVersion('{"tag_name":"v2.0.3","draft":false,"prerelease":true}'), "");
+        eq("bad json ignored", Project.releaseVersion('not-json'), "");
+
+        describe("ProjectInfo.count & contributors");
+        eq("clean integer count parses", Project.count('{"value":"4"}'), "4");
+        eq("compact count parses", Project.count('{"value":"1.2k"}'), "1.2k");
+        eq("error payload returns empty", Project.count('{"isError":true,"value":"not found"}'), "");
+        eq("invalid json returns empty", Project.count('invalid'), "");
+
+        var contribs = Project.contributors(JSON.stringify([
+            {
+                login: "Helpful-Dev",
+                type: "User",
+                contributions: 5
+            },
+            {
+                login: "ci-bot",
+                type: "Bot",
+                contributions: 50
+            },
+            {
+                login: "<invalid>",
+                type: "User",
+                contributions: 2
+            }
+        ]));
+        eq("bots and invalid logins are filtered", contribs.length, 1);
+        eq("valid contributor login kept", contribs[0].login, "Helpful-Dev");
+        eq("valid contributor commits kept", contribs[0].commits, 5);
 
         // ── done ────────────────────────────────────────────────────────────
         console.log("\n  " + suite.passed + " passed, " + suite.failed + " failed\n");

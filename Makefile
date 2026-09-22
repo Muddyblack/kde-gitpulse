@@ -1,4 +1,4 @@
-.PHONY: help view view-h install uninstall pack tag test lint format shots opendesktop
+.PHONY: help view view-h view-hyprland hyprland-view hyprland install uninstall pack tag test lint format shots opendesktop
 .DEFAULT_GOAL := help
 
 # Qt tooling: prefer the dev shell, fall back to whatever is on PATH.
@@ -31,17 +31,30 @@ help: ## list targets
 
 view: ## preview widget (planar)
 	@if command -v nix >/dev/null 2>&1 && [ -f flake.nix ]; then \
-	  nix run .#view; \
+	  nix run path:.#view; \
 	else \
 	  plasmoidviewer -a "$(CURDIR)/package" -f planar; \
 	fi
 
 view-h: ## preview widget (horizontal panel form factor)
 	@if command -v nix >/dev/null 2>&1 && [ -f flake.nix ]; then \
-	  nix run .#view -- horizontal; \
+	  nix run path:.#view -- horizontal; \
 	else \
 	  plasmoidviewer -a "$(CURDIR)/package" -f horizontal; \
 	fi
+
+view-hyprland: ## preview widget (Hyprland / Quickshell)
+	@if command -v nix >/dev/null 2>&1 && [ -f flake.nix ]; then \
+	  nix run path:.#hyprland; \
+	elif command -v qs >/dev/null 2>&1; then \
+	  qs -p shell.qml; \
+	else \
+	  echo "Running the Hyprland frontend requires Nix (Quickshell runtime) or 'qs' on PATH." >&2; \
+	  exit 1; \
+	fi
+
+hyprland-view: view-hyprland
+hyprland: view-hyprland
 
 install: ## install into the local Plasma session and restart plasmashell
 	@./test_install.sh

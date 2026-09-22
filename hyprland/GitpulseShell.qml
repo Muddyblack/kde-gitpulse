@@ -113,6 +113,8 @@ ShellRoot {
         enabled: root.accounts.some(a => a.useCli)
     }
 
+    readonly property string iconDir: Qt.resolvedUrl("../package/contents/icons/")
+
     // ── persisted settings ──────────────────────────────────────────────────
     FileView {
         id: settingsFile
@@ -359,6 +361,7 @@ ShellRoot {
                 anchors.margins: ui.spacing * 1.5
                 visible: root.settingsVisible
 
+                shell: root
                 theme: ui
                 settings: cfg
                 ghState: gh.state

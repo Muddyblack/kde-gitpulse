@@ -129,6 +129,7 @@
             name = "gitpulse-dev";
             packages = with pkgs; [
               qt6.qtdeclarative # qmllint, qmlformat, qml
+              qt6.qtsvg
               kdePackages.kirigami
               kdePackages.libplasma
               kdePackages.kpackage
@@ -138,6 +139,7 @@
             ];
             shellHook = ''
               pre-commit install -f --install-hooks
+              export QT_PLUGIN_PATH="${pkgs.qt6.qtsvg}/lib/qt-6/plugins:$QT_PLUGIN_PATH"
               echo "gitpulse dev shell ready"
               echo "  make help     — list targets (view, install, test, lint, pack)"
             '';
