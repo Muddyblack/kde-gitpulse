@@ -193,7 +193,8 @@ function install(core) {
             repository_url: "https://api.github.com/repos/muddyblack/ai-usage-widget",
             url: "https://api.github.com/repos/muddyblack/ai-usage-widget/issues/58",
             user: {
-                login: "kdeuser"
+                login: "kdeuser",
+                avatar_url: "https://example.invalid/kdeuser.png"
             },
             assignees: [],
             additions: 1240,
@@ -214,7 +215,8 @@ function install(core) {
             repository_url: "https://api.github.com/repos/muddyblack/gitpulse",
             url: "https://api.github.com/repos/muddyblack/gitpulse/issues/9",
             user: {
-                login: "muddyblack"
+                login: "muddyblack",
+                avatar_url: "https://example.invalid/muddyblack.png"
             },
             assignees: [
                 {

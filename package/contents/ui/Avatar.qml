@@ -40,6 +40,7 @@ Item {
         anchors.fill: parent
         source: avatar.ready ? avatar.source : ""
         radius: width / 2
+        fillMode: Image.PreserveAspectCrop
         visible: avatar.ready
     }
 

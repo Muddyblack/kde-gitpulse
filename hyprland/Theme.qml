@@ -70,6 +70,11 @@ QtObject {
         }
     }
 
+    function onTone(tone) {
+        var c = theme.of(tone);
+        return theme.luminance(c) > 0.45 ? "#12141a" : "#ffffff";
+    }
+
     /** The same colour at low alpha, for pill and badge backgrounds. */
     function wash(tone, alpha) {
         var c = theme.of(tone);

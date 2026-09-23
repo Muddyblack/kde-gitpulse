@@ -99,28 +99,61 @@ Item {
             Layout.leftMargin: Kirigami.Units.smallSpacing * 2
             spacing: Kirigami.Units.smallSpacing * 1.5
 
-            // Tone circle carrying the kind/reason glyph.
-            Rectangle {
+            // ── who + what ──────────────────────────────────────────────────
+            //
+            // The owner's picture carries identity and the corner dot carries
+            // state, which is how GitHub's own inbox stays scannable. With no
+            // picture the dot grows into the full badge and nothing looks broken.
+            Item {
                 Layout.alignment: Qt.AlignTop
-                implicitWidth: Kirigami.Units.iconSizes.small
-                implicitHeight: Kirigami.Units.iconSizes.small
-                radius: width / 2
-                color: row.tones.wash(row.item.tone, 0.16)
+                implicitWidth: 28
+                implicitHeight: 28
 
-                Kirigami.Icon {
-                    anchors.centerIn: parent
-                    width: Math.round(Kirigami.Units.iconSizes.small * 0.7)
+                Avatar {
+                    anchors.fill: parent
+                    visible: (row.engine ? row.engine.showUserAvatars : true) && row.item.avatarUrl !== undefined && row.item.avatarUrl !== ""
+                    source: row.engine && row.engine.avatarSourceFor ? row.engine.avatarSourceFor(row.item.avatarUrl || "") : (row.engine && !row.engine.showUserAvatars ? "" : (row.item.avatarUrl || ""))
+                    login: row.item.actor || row.item.repo
+                }
+
+                Rectangle {
+                    id: dot
+
+                    readonly property bool solo: !row.item.avatarUrl || (row.engine && !row.engine.showUserAvatars)
+
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.rightMargin: dot.solo ? 0 : -1
+                    anchors.bottomMargin: dot.solo ? 0 : -1
+                    width: dot.solo ? 28 : 15
                     height: width
-                    source: row.item.icon
-                    color: row.tones.of(row.item.tone)
-                    isMask: true
+                    radius: width / 2
+                    color: dot.solo ? row.tones.wash(row.item.tone, 0.16) : Kirigami.Theme.backgroundColor
+                    border.width: dot.solo ? 0 : 1.5
+                    border.color: Kirigami.Theme.backgroundColor
 
-                    RotationAnimator on rotation {
-                        running: row.item.running === true
-                        loops: Animation.Infinite
-                        from: 0
-                        to: 360
-                        duration: Kirigami.Units.veryLongDuration * 3
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: dot.solo ? 0 : 1
+                        radius: width / 2
+                        color: dot.solo ? "transparent" : row.tones.wash(row.item.tone, 0.9)
+                    }
+
+                    Kirigami.Icon {
+                        anchors.centerIn: parent
+                        width: dot.solo ? 14 : 9
+                        height: width
+                        source: row.item.icon
+                        color: dot.solo ? row.tones.of(row.item.tone) : row.tones.onTone(row.item.tone)
+                        isMask: true
+
+                        RotationAnimator on rotation {
+                            running: row.item.running === true
+                            loops: Animation.Infinite
+                            from: 0
+                            to: 360
+                            duration: Kirigami.Units.veryLongDuration * 3
+                        }
                     }
                 }
             }

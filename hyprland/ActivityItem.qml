@@ -111,7 +111,7 @@ Rectangle {
                 visible: (row.engine ? row.engine.showUserAvatars : true) && row.item.avatarUrl !== undefined && row.item.avatarUrl !== ""
                 theme: row.theme
                 source: row.engine && row.engine.avatarSourceFor ? row.engine.avatarSourceFor(row.item.avatarUrl || "") : (row.engine && !row.engine.showUserAvatars ? "" : row.item.avatarUrl || "")
-                login: row.item.repo
+                login: row.item.actor || row.item.repo
             }
 
             Rectangle {
@@ -142,7 +142,7 @@ Rectangle {
                     width: dot.solo ? 14 : 9
                     height: width
                     name: Glyphs.forItem(row.item)
-                    color: dot.solo ? row.theme.of(row.item.tone) : row.theme.ink
+                    color: dot.solo ? row.theme.of(row.item.tone) : row.theme.onTone(row.item.tone)
                     spinning: row.running
                 }
             }

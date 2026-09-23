@@ -19,7 +19,7 @@ TEST_ENV := QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
 # comes first deliberately: the run must be identical on a machine with Plasma
 # installed and on one without.
 STUBS     := $(abspath tests/stubs)
-PLASMA_ENV := QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
+PLASMA_ENV := env -i PATH="$(PATH)" QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
               QML2_IMPORT_PATH=$(STUBS):$(QML_MODULES) QML_IMPORT_PATH=$(STUBS):$(QML_MODULES)
 
 # Anything QML complains about fails the build. Both smoke tests are greped for

@@ -48,14 +48,16 @@ QtObject {
      */
     readonly property color accent: Plasmoid.configuration.accentMode === "custom" && Plasmoid.configuration.customAccent !== "" ? Plasmoid.configuration.customAccent : Kirigami.Theme.highlightColor
 
-    /** Readable text on top of a filled accent block, whichever accent it is. */
-    readonly property color accentText: {
+    /** Relative luminance, for picking readable text on an arbitrary accent or tone. */
+    function luminance(c) {
         var lin = function (v) {
             return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
         };
-        var l = 0.2126 * lin(tones.accent.r) + 0.7152 * lin(tones.accent.g) + 0.0722 * lin(tones.accent.b);
-        return l > 0.45 ? Qt.rgba(0.07, 0.08, 0.1, 1) : Qt.rgba(1, 1, 1, 1);
+        return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
     }
+
+    /** Readable text on top of a filled accent block, whichever accent it is. */
+    readonly property color accentText: tones.luminance(tones.accent) > 0.45 ? Qt.rgba(0.07, 0.08, 0.1, 1) : Qt.rgba(1, 1, 1, 1)
 
     function of(tone) {
         switch (tone) {
@@ -70,6 +72,11 @@ QtObject {
         default:
             return tones.muted;
         }
+    }
+
+    function onTone(tone) {
+        var c = tones.of(tone);
+        return tones.luminance(c) > 0.45 ? Qt.rgba(0.07, 0.08, 0.1, 1) : Qt.rgba(1, 1, 1, 1);
     }
 
     /** Same colour at low alpha, for pill and icon-circle backgrounds. */

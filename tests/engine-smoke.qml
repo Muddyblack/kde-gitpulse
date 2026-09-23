@@ -52,6 +52,10 @@ QtObject {
         ok("keeps an existing avatar query", suite.engine.avatarSourceFor("https://avatars.example.test/u/1?v=4") === "https://avatars.example.test/u/1?v=4&gitpulse-avatar=42");
         ok("shares one cache key for the same actor", suite.engine.avatarSourceFor("https://avatars.example.test/u/1?v=4") === suite.engine.avatarSourceFor("https://avatars.example.test/u/1?v=4"));
         ok("adds a query delimiter when an avatar has none", suite.engine.avatarSourceFor("https://avatars.example.test/u/2") === "https://avatars.example.test/u/2?gitpulse-avatar=42");
+        suite.engine.showUserAvatars = false;
+        ok("returns empty when showUserAvatars is false", suite.engine.avatarSourceFor("https://avatars.example.test/u/2") === "");
+        ok("respects force flag even when showUserAvatars is false", suite.engine.avatarSourceFor("https://avatars.example.test/u/2", true) === "https://avatars.example.test/u/2?gitpulse-avatar=42");
+        suite.engine.showUserAvatars = true;
 
         console.warn("\n  Engine — polling is off without a token");
         ok("inbox timer is stopped", !suite.engine._inboxTimer.running);
