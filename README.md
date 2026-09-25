@@ -26,8 +26,11 @@
 <p align="center">
   Notifications, CI runs, pull requests, issues, your profile and service health —<br>
   from <strong>GitHub</strong>, <strong>GitLab</strong> and <strong>Codeberg</strong>, in one panel,<br>
-  as a native <strong>KDE Plasma 6</strong> widget or <strong>Hyprland / Quickshell</strong> panel.
+  as a native <strong>KDE Plasma 6</strong> widget, <strong>Hyprland / Quickshell</strong> panel,<br>
+  or <strong>Windows</strong> tray app (preview).
 </p>
+
+Windows: see the [tray app setup and build instructions](docs/windows.md).
 
 <p align="center">
   <img src="readme/panel.svg" width="264" alt="Gitpulse in a desktop panel">

@@ -25,3 +25,10 @@ hyprland-settings.json
 
 # System junk
 .DS_Store
+
+# Windows packaging and Python
+dist/
+__pycache__/
+*.pyc
+GitPulse-Setup-*.exe
+gitpulse-windows-*.zip

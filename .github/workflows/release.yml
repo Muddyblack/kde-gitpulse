@@ -53,3 +53,25 @@ jobs:
             kpackagetool6 --type Plasma/Applet --install ${{ steps.info.outputs.artifact }}
             ```
           files: ${{ steps.info.outputs.artifact }}
+
+  windows:
+    uses: ./.github/workflows/windows.yml
+    with:
+      version: ${{ github.ref_name }}
+
+  windows-release:
+    needs: [release, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gitpulse-windows
+          path: windows-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            windows-assets/**/*.zip
+            windows-assets/**/*.exe
+            windows-assets/**/gitpulse.json

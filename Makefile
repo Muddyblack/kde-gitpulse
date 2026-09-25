@@ -124,3 +124,11 @@ pack: ## build the .plasmoid archive
 
 tag: ## bump version, commit, tag, push
 	@./tag.sh
+
+.PHONY: run-windows test-windows
+run-windows: ## run the PySide6 tray app
+	nix develop path:.#windows --command python windows/app.py
+
+test-windows: ## test Windows settings and render every popup tab offscreen
+	nix develop path:.#windows --command python -m unittest discover -s tests/windows -v
+	nix develop path:.#windows --command python windows/app.py --selftest

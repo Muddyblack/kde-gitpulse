@@ -125,6 +125,16 @@
       devShells = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system};
         in {
+          windows = pkgs.mkShell {
+            name = "gitpulse-windows-dev";
+            packages = [ (pkgs.python3.withPackages (ps: [ ps.pyside6 ])) pkgs.qt6.qtdeclarative pkgs.ruff ];
+            QML2_IMPORT_PATH = "${pkgs.qt6.qtdeclarative}/lib/qt-6/qml";
+            QML_IMPORT_PATH = "${pkgs.qt6.qtdeclarative}/lib/qt-6/qml";
+            QT_PLUGIN_PATH = "${pkgs.qt6.qtbase}/lib/qt-6/plugins:${pkgs.qt6.qtsvg}/lib/qt-6/plugins:${pkgs.qt6.qtwayland}/lib/qt-6/plugins";
+            QT_QPA_PLATFORMTHEME = "";
+            QT_STYLE_OVERRIDE = "";
+            QT_QPA_PLATFORM_PLUGIN_PATH = "${pkgs.qt6.qtbase}/lib/qt-6/plugins/platforms";
+          };
           default = pkgs.mkShell {
             name = "gitpulse-dev";
             packages = with pkgs; [
