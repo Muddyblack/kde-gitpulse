@@ -223,6 +223,17 @@ class Backend(QObject):
         self.process.waitForFinished(1000)
 
 
+def configure_selftest_runtime():
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    os.environ["QT_QUICK_BACKEND"] = "software"
+    if sys.platform == "win32" and "QT_QPA_FONTDIR" not in os.environ:
+        # The offscreen platform uses Qt's basic font database, which
+        # otherwise looks for a fonts directory that PySide6 does not ship.
+        fonts = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+        if fonts.is_dir():
+            os.environ["QT_QPA_FONTDIR"] = str(fonts)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -233,8 +244,7 @@ def main():
     parser.add_argument("--settings", action="store_true")
     args = parser.parse_args()
     if args.selftest:
-        os.environ["QT_QPA_PLATFORM"] = "offscreen"
-        os.environ["QT_QUICK_BACKEND"] = "software"
+        configure_selftest_runtime()
     app = QApplication(sys.argv[:1])
     app.setApplicationName("GitPulse")
     app.setOrganizationName("Muddyblack")

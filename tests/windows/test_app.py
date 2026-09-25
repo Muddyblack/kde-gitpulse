@@ -64,6 +64,24 @@ class SettingsTests(unittest.TestCase):
             )
 
 
+class SelftestRuntimeTests(unittest.TestCase):
+    def test_windows_offscreen_uses_system_fonts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fonts = Path(directory) / "Fonts"
+            fonts.mkdir()
+            with (
+                patch.object(app.sys, "platform", "win32"),
+                patch.dict(os.environ, {"WINDIR": directory}, clear=True),
+            ):
+                app.configure_selftest_runtime()
+                self.assertEqual(os.environ["QT_QPA_PLATFORM"], "offscreen")
+                self.assertEqual(os.environ["QT_QUICK_BACKEND"], "software")
+                self.assertEqual(os.environ["QT_QPA_FONTDIR"], str(fonts))
+                os.environ["QT_QPA_FONTDIR"] = "custom-fonts"
+                app.configure_selftest_runtime()
+                self.assertEqual(os.environ["QT_QPA_FONTDIR"], "custom-fonts")
+
+
 class CliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
